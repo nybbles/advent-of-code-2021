@@ -4,12 +4,12 @@ from enum import Enum
 from functools import reduce
 
 Instruction = Enum("Instruction", "forward down up")
-Distance = int
-Command = tuple[Instruction, Distance]
+Command = tuple[Instruction, int]
 
 HorizontalPosition = int
 Depth = int
-State = tuple[HorizontalPosition, Depth]
+Aim = int
+State = tuple[HorizontalPosition, Depth, Aim]
 
 
 def parse_command(line) -> Command:
@@ -20,22 +20,21 @@ def parse_command(line) -> Command:
 
 
 def state_after_command(state: State, command: Command):
-  horizonal_position, depth = state
+  horizonal_position, depth, aim = state
   match command:
     case (Instruction.forward, distance):
-      return (horizonal_position + distance, depth)
-    case (Instruction.down, distance):
-      return (horizonal_position, depth + distance)
-    case (Instruction.up, distance):
-      return (horizonal_position, depth - distance)
+      return (horizonal_position + distance, depth + (distance * aim), aim)
+    case (Instruction.down, aim_units):
+      return (horizonal_position, depth, aim + aim_units)
+    case (Instruction.up, aim_units):
+      return (horizonal_position, depth, aim - aim_units)
     
 
 input = open('02/input.txt', 'r').readlines()
+
+
 commands = [parse_command(x) for x in input]
-state = (0, 0)
+state = (0, 0, 0)
 
 end_state = reduce(state_after_command, commands, state)
 print(end_state)
-
-
-
