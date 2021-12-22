@@ -4,8 +4,12 @@ crabs = [16, 1, 2, 0, 4, 2, 7, 1, 2, 14]
 crabs = [int(x.strip()) for x in open("07/input.txt", 'r').read().split(",")]
 
 
+def crab_fuel_curve(distance):
+  return int((distance * (distance + 1)) / 2)
+
+
 def cost(crab, target):
-  return abs(crab - target)
+  return crab_fuel_curve(abs(crab - target))
 
 
 def position_costs(crabs):
