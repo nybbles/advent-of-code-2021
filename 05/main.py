@@ -30,36 +30,25 @@ def parse_line(input):
   return (p0, p1)
 
 
-def is_line_axis_aligned(line: Line) -> bool:
-  p0, p1 = line
-  return p0[0] == p1[0] or p0[1] == p1[1]
-
-
 def expand_line_to_points(line: Line):
-  # Line is expected to be axis aligned
-  assert (is_line_axis_aligned(line))
+  # Line is expected to be axis aligned or diagonal
   p0, p1 = line
-  changing_dim = 0 if p0[0] != p1[0] else 1
-  unchanging_dim = 1 if changing_dim == 0 else 0
 
-  extent = (
-      min([p0[changing_dim], p1[changing_dim]]),
-      max([p0[changing_dim], p1[changing_dim]]),
-  )
+  direction = np.sign(np.array(p1) - np.array(p0))
+  p = p0
 
-  for x in range(extent[0], extent[1] + 1):
-    new_point = [-1, -1]
-    new_point[unchanging_dim] = p0[unchanging_dim]
-    new_point[changing_dim] = x
-    yield tuple(new_point)
+  while True:
+    yield p
+
+    if (p == p1):
+      break
+
+    p = tuple(np.array(p) + direction)
 
 
 lines = [parse_line(x) for x in input]
 
-axis_aligned_lines = [x for x in lines if is_line_axis_aligned(x)]
-
-expanded_points = chain(
-    *[expand_line_to_points(x) for x in axis_aligned_lines])
+expanded_points = chain(*[expand_line_to_points(x) for x in lines])
 
 point_cloud_densities = defaultdict(int)
 for point in expanded_points:
