@@ -1,8 +1,9 @@
 #! python
 
 from itertools import dropwhile, islice
-from more_itertools import first, take, chunked, filter_except, split_at
+
 import numpy as np
+from more_itertools import partition, split_at, take, ilen
 
 input = """7,4,9,5,11,17,23,2,0,14,21,24,10,16,13,6,15,25,12,22,18,20,8,19,3,26,1
 
@@ -60,22 +61,27 @@ class Board:
 
 boards = [Board(board_lines) for board_lines in unparsed_boards]
 
-completed_boards = []
+completed_boards = None
 number_on_board_completion = None
 
 for x in input_seq:
-  for board in boards:
-    board_was_completed = board.mark_number_and_check(x)
-    if board_was_completed:
-      completed_boards.append(board)
+  incomplete_boards, complete_boards = partition(
+      lambda board: board.mark_number_and_check(x), boards)
+  incomplete_boards = list(incomplete_boards)
+  complete_boards = list(complete_boards)
 
-  if len(completed_boards) == 0:
+  if len(incomplete_boards) > 0:
+    # There are still boards to complete
+    boards = incomplete_boards  # safe to ignore completed boards
     continue
 
-  ncompleted_boards = len(completed_boards)
-  print(f"Completed {ncompleted_boards} boards on number {x}")
+  # There are no more incomplete boards, so the lowest scored completed board is
+  # the one we want
+  ncomplete_boards = len(complete_boards)
+  print(f"Completed {ncomplete_boards} boards on number {x}")
 
-  completed_boards.sort(key=lambda x: x.compute_board_score(), reverse=True)
+  complete_boards.sort(key=lambda x: x.compute_board_score())
+  completed_boards = complete_boards
   number_on_board_completion = x
 
   break
@@ -83,10 +89,10 @@ for x in input_seq:
 if (completed_boards is None):
   print("No boards were completed")
 else:
-  best_board = completed_boards[0]
-  best_board_score = best_board.compute_board_score()
+  worst_board = completed_boards[0]
+  worst_board_score = worst_board.compute_board_score()
 
   print("Boards were completed")
-  print(best_board.board_state)
+  print(worst_board.board_state)
   print(f"Number was {number_on_board_completion}")
-  print(f"Best board score is {best_board_score}")
+  print(f"Worst completed board score is {worst_board_score}")
