@@ -106,17 +106,25 @@ def simulate_one_step(octopus_map):
   return octopus_map, total_flashes
 
 
-def simulate_n_steps(octopus_map, n):
+def simulate_n_steps(octopus_map, n, stop_when_all_flash=False):
   total_flashes = 0
-  for _ in range(n):
+  noctopii = octopus_map.shape[0] * octopus_map.shape[1]
+  all_flash_step = None
+
+  for i in range(n):
     octopus_map, flashes = simulate_one_step(octopus_map)
     total_flashes = total_flashes + flashes
+    all_flashed = flashes == noctopii
 
-  return octopus_map, total_flashes
+    if (all_flashed and stop_when_all_flash):
+      all_flash_step = i + 1
+      break
+
+  return octopus_map, total_flashes, all_flash_step
 
 
 print("Before:")
 print(octopus_map)
 
 print("\nAfter:")
-print(simulate_n_steps(octopus_map, 100))
+print(simulate_n_steps(octopus_map, 1000, True))
