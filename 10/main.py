@@ -36,8 +36,8 @@ class CorruptedLineException(Exception):
 
 
 class IncompleteLineException(Exception):
-  def __init__(self):
-    pass
+  def __init__(self, stack_state):
+    self.stack_state = stack_state
 
 
 def check_line(line):
@@ -57,11 +57,28 @@ def check_line(line):
   end_stack = reduce(check_next_char, line, [])
 
   if (len(end_stack) != 0):
-    raise IncompleteLineException()
+    raise IncompleteLineException(end_stack)
+
+
+def stack_state_to_expected_closing_delimiters(stack_state):
+  result = [opening_delimiters[char][0] for char in stack_state]
+  result.reverse()
+  return result
+
+
+def score_incomplete_stack_state(stack_state):
+  closing_delimiter_to_score = {')': 1, ']': 2, '}': 3, '>': 4}
+
+  def update_score(score, next_char):
+    return score * 5 + closing_delimiter_to_score[next_char]
+
+  return reduce(update_score,
+                stack_state_to_expected_closing_delimiters(stack_state), 0)
 
 
 def check_lines(lines):
   syntax_error_score = 0
+  incomplete_stack_scores = []
   for line in lines:
     try:
       check_line(line)
@@ -69,10 +86,15 @@ def check_lines(lines):
       _, score = closing_delimiters[err.found]
       syntax_error_score = syntax_error_score + score
       continue
-    except IncompleteLineException:
+    except IncompleteLineException as err:
+      incomplete_stack_scores.append(
+          score_incomplete_stack_state(err.stack_state))
       continue
 
-  return syntax_error_score
+  incomplete_stack_scores.sort()
+  mid_score = incomplete_stack_scores[int(len(incomplete_stack_scores) / 2)]
+
+  return syntax_error_score, mid_score
 
 
 print(check_lines(input))
