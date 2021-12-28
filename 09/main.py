@@ -1,9 +1,7 @@
 #! python
 
 import numpy as np
-
-from more_itertools import stagger, islice_extended
-from itertools import chain
+from functools import reduce
 
 input = """2199943210
 3987894921
@@ -11,7 +9,7 @@ input = """2199943210
 8767896789
 9899965678"""
 
-# input = open("09/input.txt", "r").read()
+input = open("09/input.txt", "r").read()
 
 
 def get_array_shape(input):
@@ -66,9 +64,46 @@ def find_low_points(height_map):
       yield (idx, x, neighbor_vals)
 
 
+def basin_for_low_point(height_map, low_point):
+  low_point_idx, low_point_height, _ = low_point
+
+  # Expand from low point to determine basin.
+  # Basin boundary entry: (idx, previous idx height)
+  basin = set([low_point_idx])
+
+  def get_basin_boundary_update(candidate_idx, candidate_height):
+    return [(idx, candidate_height)
+            for idx in neighborhood(candidate_idx, height_map.shape)
+            if idx not in basin]
+
+  basin_boundary = get_basin_boundary_update(low_point_idx, low_point_height)
+
+  while len(basin_boundary) > 0:
+    candidate_idx, prev_idx_height = basin_boundary.pop()
+    candidate_height = height_map[candidate_idx]
+    if (candidate_height >= 9 or candidate_height <= prev_idx_height):
+      continue
+
+    basin.add(candidate_idx)
+    basin_boundary.extend(
+        get_basin_boundary_update(candidate_idx, candidate_height))
+
+  return basin
+
+
 def risk_level(low_points):
   return sum([x + 1 for x in low_points])
 
 
-ans = risk_level([height for _, height, _ in find_low_points(height_map)])
+low_points = list(find_low_points(height_map))
+
+ans = risk_level([height for _, height, _ in low_points])
+print(ans)
+
+basins = [
+    basin_for_low_point(height_map, low_point) for low_point in low_points
+]
+basins.sort(key=lambda x: len(x), reverse=True)
+
+ans = reduce(lambda x, y: x * y, [len(basin) for basin in basins[0:3]], 1)
 print(ans)
