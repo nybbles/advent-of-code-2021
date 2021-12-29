@@ -41,25 +41,30 @@ def is_small_cave(node):
 
 
 def find_all_paths(graph):
-  # boundary entry: (next node, path)
+  # boundary entry: (next node, path, visited_small_cave_twice)
   # never add start to boundary. path complete when end is the node
-  boundary = [("start", ["start"])]
+  boundary = [("start", ["start"], False)]
 
   while len(boundary) > 0:
-    node, path = boundary.pop()
+    node, path, visited_small_cave_twice = boundary.pop()
     if node == "end":
       yield path
       continue
 
-    visited_small_caves = set([c for c in path if is_small_cave(c)])
+    visited_small_caves = set(
+        [c for c in path if c != "start" and is_small_cave(c)])
+
     neighbors = [x for x in graph[node] if x != "start"]
     for neighbor in neighbors:
-      if is_small_cave(neighbor) and neighbor in visited_small_caves:
+      neighbor_is_visited_small_cave = is_small_cave(
+          neighbor) and neighbor in visited_small_caves
+      if neighbor_is_visited_small_cave and visited_small_cave_twice:
         continue
 
       new_path = path.copy()
       new_path.append(neighbor)
-      boundary.append((neighbor, new_path))
+      boundary.append((neighbor, new_path, visited_small_cave_twice
+                       or neighbor_is_visited_small_cave))
 
 
 print(graph)
