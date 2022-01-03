@@ -87,8 +87,19 @@ def perform_folds(dots, folds):
   return dots
 
 
+def print_dots(dots):
+  max_x = max(dots, key=lambda x: x[0])[0]
+  max_y = max(dots, key=lambda x: x[1])[1]
+
+  for y in range(max_y + 1):
+    for x in range(max_x + 1):
+      print("#" if (x, y) in dots else ".", end="")
+    print()
+
+
 dots, folds = [x.splitlines() for x in input.split("\n\n")]
 folds = [parse_fold(x) for x in folds]
 dots = set([tuple([int(i) for i in x.split(",")]) for x in dots])
 
-print(len(perform_fold(dots, folds[0])))
+folded_dots = perform_folds(dots, folds)
+print_dots(folded_dots)
