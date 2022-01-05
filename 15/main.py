@@ -52,4 +52,21 @@ def find_lowest_risk_path(risk_map):
   raise Exception("Unable to find a path from start position to end position")
 
 
-print(find_lowest_risk_path(risk_map))
+TILES = (5, 5)
+MAX_RISK = 9
+
+
+def tile_risk_map(risk_map):
+  tiled = np.tile(risk_map, TILES)
+  tile_rows = np.vsplit(tiled, TILES[0])
+  tile_cells = [np.hsplit(tr, TILES[1]) for tr in tile_rows]
+
+  for i, tile_cell_row in enumerate(tile_cells):
+    for j, cell in enumerate(tile_cell_row):
+      cell[:] = (cell + i + j)
+      cell[cell > MAX_RISK] = cell[cell > MAX_RISK] - MAX_RISK
+
+  return tiled
+
+
+print(find_lowest_risk_path(tile_risk_map(risk_map)))
