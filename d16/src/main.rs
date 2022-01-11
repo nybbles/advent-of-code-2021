@@ -1,6 +1,7 @@
 use bitvec::prelude::*;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
+use std::fs;
 
 const BYTE_SIZE: usize = 8;
 const MIN_PACKET_SIZE: usize = 6;
@@ -208,6 +209,13 @@ fn test() {
     }
 }
 
+fn read_input() -> String {
+    fs::read_to_string("input.txt")
+        .expect("unable to read input")
+        .trim()
+        .to_string()
+}
+
 fn main() {
     // let input = "D2FE28";
     // let input = "38006F45291200";
@@ -215,8 +223,10 @@ fn main() {
     // let input = "8A004A801A8002F478";
     // let input = "620080001611562C8802118E34";
     // let input = "C0015000016115A2E0802F182340";
-    let input = "A0016C880162017C3686B18A3D4780";
+    // let input = "A0016C880162017C3686B18A3D4780";
+    let input = &read_input();
+    println!("{}", input);
 
-    let (packet, remaining_bits) = decode_packet_from_hex(input);
+    let (packet, _remaining_bits) = decode_packet_from_hex(input);
     println!("Packet version sum {}", compute_version_sum(&packet));
 }
