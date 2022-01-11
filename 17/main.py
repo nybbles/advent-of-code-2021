@@ -4,6 +4,7 @@ import re
 from itertools import count
 
 input = "target area: x=20..30, y=-10..-5"
+input = open("17/input.txt", "r").read()
 
 # Split the problem up into x and y coordinates separately.
 # x coordinate: x = (dx (dx + 1)) / 2
@@ -96,31 +97,54 @@ def determine_maxy_trajectory(initial_dx, dx, target_y):
   # y = dy * n - constant0
   # y + constant0 = dy * constant1
   # dy = (y + constant0) / constant1
+  # if dx = 0, then timesteps >= n.
+  # Assumption: Trajectories where dx=0, but dy>0 are not valid.
+  # cumsum(n) to get to the apex, then cumsum(m) to descend, where m>=n
 
   y1, y0 = target_y
   assert (y0 >= y1)
   n = get_ntimesteps(initial_dx, dx)
 
-  dys = []
-  for y in range(y1, y0 + 1):
-    dy = (y + cumsum(n - 1)) / n
-    if not dy.is_integer():
-      continue
-    dys.append((y, int(dy)))
+  if (dx == 0):
+    print(initial_dx, dx, n)
+    for initial_dy in range(n, 1, -1):
+      max_y = cumsum(initial_dy)
+      for i in cumsum_iter(1):
+        final_y = max_y - i
+        print(final_y, y0, y1)
+        if final_y < y1:
+          break
+        if final_y <= y0:
+          print("Found dx=0 trajectory", final_y, initial_dy, max_y)
+          return final_y, initial_dy, max_y
 
-  best_dy = max(dys, key=lambda x: x[1])
+    return None
+  else:
+    dys = []
 
-  # compute max_y for the dy
-  return best_dy[0], best_dy[1], dy_to_maxy(best_dy[1])
+    for y in range(y1, y0 + 1):
+      dy = (y + cumsum(n - 1)) / n
+      if not dy.is_integer():
+        continue
+      dys.append((y, int(dy)))
+
+    if len(dys) == 0:
+      return None
+
+    best_dy = max(dys, key=lambda x: x[1])
+    return best_dy[0], best_dy[1], dy_to_maxy(best_dy[1])
 
 
 target_x, target_y = parse_input(input)
+print(target_x, target_y)
 
 on_target_trajectories = []
 for trajectory in determine_dx(target_x):
   x, initial_dx, dx = trajectory
-  y, initial_dy, max_y = determine_maxy_trajectory(initial_dx, dx, target_y)
-  on_target_trajectories.append((initial_dx, initial_dy, x, y, max_y))
+  result = determine_maxy_trajectory(initial_dx, dx, target_y)
+  if result is not None:
+    y, initial_dy, max_y = result
+    on_target_trajectories.append((initial_dx, initial_dy, x, y, max_y))
 
 on_target_trajectories.sort(key=lambda x: x[-1], reverse=True)
 print(on_target_trajectories[0])
