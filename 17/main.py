@@ -78,5 +78,49 @@ def determine_dx(target_x):
       return result
 
 
-print(parse_input(input))
-print(determine_dx((7, 10)))
+def get_ntimesteps(initial_dx, dx):
+  # The number of timesteps passed can be computed from the starting speed and
+  # the ending speed, since speed decreases by 1 on each timestep.
+  return initial_dx - dx
+
+
+def dy_to_maxy(dy):
+  if dy <= 0:
+    return dy
+  return cumsum(dy)
+
+
+def determine_maxy_trajectory(initial_dx, dx, target_y):
+  # TODO: Need special handling for dx = 0, because they can use more timesteps
+  # y = (dy * n) - (n * (n-1)) / 2
+  # y = dy * n - constant0
+  # y + constant0 = dy * constant1
+  # dy = (y + constant0) / constant1
+
+  y1, y0 = target_y
+  assert (y0 >= y1)
+  n = get_ntimesteps(initial_dx, dx)
+
+  dys = []
+  for y in range(y1, y0 + 1):
+    dy = (y + cumsum(n - 1)) / n
+    if not dy.is_integer():
+      continue
+    dys.append((y, int(dy)))
+
+  best_dy = max(dys, key=lambda x: x[1])
+
+  # compute max_y for the dy
+  return best_dy[0], best_dy[1], dy_to_maxy(best_dy[1])
+
+
+target_x, target_y = parse_input(input)
+
+on_target_trajectories = []
+for trajectory in determine_dx(target_x):
+  x, initial_dx, dx = trajectory
+  y, initial_dy, max_y = determine_maxy_trajectory(initial_dx, dx, target_y)
+  on_target_trajectories.append((initial_dx, initial_dy, x, y, max_y))
+
+on_target_trajectories.sort(key=lambda x: x[-1], reverse=True)
+print(on_target_trajectories[0])
