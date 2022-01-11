@@ -1,6 +1,7 @@
 #! python
 
 import re
+from itertools import count
 
 input = "target area: x=20..30, y=-10..-5"
 
@@ -26,8 +27,56 @@ def parse_input(input):
       "target area: x=([-0-9]+)..([-0-9]+), y=([-0-9]+)..([-0-9]+)", input)
   if not match:
     raise Exception("Unable to parse input")
-  return ((int(match.group(1)), int(match.group(2))), (int(match.group(3)),
-                                                       int(match.group(4))))
+  return (int(match.group(1)), int(match.group(2))), (int(match.group(3)),
+                                                      int(match.group(4)))
+
+
+def cumsum_iter(start):
+  acc = 0
+  for i in count(start):
+    acc = i + acc
+    yield acc
+
+
+def cumsum(n):
+  return int(n * (n + 1) / 2)
+
+
+def determine_dx(target_x):
+  x0, x1 = target_x
+  initial_dx = None
+  x_stalled = None
+  result = []
+
+  for i, x in enumerate(cumsum_iter(1)):
+    if x >= x0:
+      initial_dx = i + 1
+      x_stalled = x
+      break
+
+  for x in range(x0, min(x1, x_stalled) + 1):
+    dx = x_stalled - x
+    result.append((x, initial_dx, dx))
+
+  if x1 <= x_stalled:
+    return result
+
+  final_x = x_stalled
+
+  while True:
+    assert (final_x < x1)
+
+    x_stalled = final_x + 1
+    initial_dx = initial_dx + 1
+    final_x = cumsum(initial_dx)
+
+    for x in range(x_stalled, min(x1, final_x) + 1):
+      dx = final_x - x
+      result.append((x, initial_dx, dx))
+
+    if x1 <= final_x:
+      return result
 
 
 print(parse_input(input))
+print(determine_dx((7, 10)))
