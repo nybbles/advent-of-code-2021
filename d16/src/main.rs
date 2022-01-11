@@ -123,8 +123,8 @@ fn decode_packet(packet_bits: &D16BitSlice) -> (Packet, &D16BitSlice) {
             return (Packet::Literal(packet_header, literal), remaining_bits);
         }
         None => {
-            let (operator, remaining_bits) = decode_operator(packet_contents);
-            return (Packet::Operator(packet_header, operator), remaining_bits);
+            let (subpackets, remaining_bits) = decode_operator(packet_contents);
+            return (Packet::Operator(packet_header, subpackets), remaining_bits);
         }
     }
 }
