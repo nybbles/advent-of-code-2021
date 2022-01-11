@@ -12,7 +12,7 @@ type Literal = u64;
 
 struct PacketHeader {
     packet_version: u8,
-    packet_type: u8,
+    _packet_type: u8,
 }
 
 enum Packet {
@@ -28,7 +28,6 @@ enum PacketType {
 type D16BitSlice = BitSlice<Msb0, u8>;
 
 fn decode_literal(bits: &D16BitSlice) -> (Literal, &D16BitSlice) {
-    println!("START decode_literal {}", bits.to_string());
     let mut result = bitvec![Msb0,u8;];
     let mut ngroups = 0;
     let mut zero_bit_group_found = false;
@@ -49,24 +48,15 @@ fn decode_literal(bits: &D16BitSlice) -> (Literal, &D16BitSlice) {
     assert!(zero_bit_group_found);
 
     let remaining_bits = &bits[ngroups * (LITERAL_GROUP_SIZE + 1)..];
-    println!("END decode_literal {}", result.load_be::<Literal>());
     return (result.load_be::<Literal>(), remaining_bits);
 }
 
 fn decode_operator_for_bits(bits: &D16BitSlice) -> (Vec<Packet>, &D16BitSlice) {
-    println!("START decode_operator_for_bits {}", bits.to_string());
     const TOTAL_LENGTH_IN_BITS_SIZE: usize = 15;
     let total_length = bits[..TOTAL_LENGTH_IN_BITS_SIZE].load_be::<usize>();
     let mut remaining_bits =
         &bits[TOTAL_LENGTH_IN_BITS_SIZE..TOTAL_LENGTH_IN_BITS_SIZE + total_length];
     let all_remaining_bits = &bits[TOTAL_LENGTH_IN_BITS_SIZE + total_length..];
-
-    println!(
-        "decode_operator_for_bits encoded bits length {}, length {}, remaining bits {}",
-        bits[..TOTAL_LENGTH_IN_BITS_SIZE].to_string(),
-        total_length,
-        remaining_bits.to_string()
-    );
 
     let mut result: Vec<Packet> = Vec::new();
 
@@ -76,25 +66,13 @@ fn decode_operator_for_bits(bits: &D16BitSlice) -> (Vec<Packet>, &D16BitSlice) {
         result.push(new_packet);
     }
 
-    println!(
-        "END decode_operator_for_bits {}",
-        all_remaining_bits.to_string()
-    );
     (result, all_remaining_bits)
 }
 
 fn decode_operator_by_subpackets(bits: &D16BitSlice) -> (Vec<Packet>, &D16BitSlice) {
-    println!("START decode_operator_by_subpackets {}", bits.to_string());
     const NUMBER_OF_SUBPACKETS_SIZE: usize = 11;
     let nsubpackets = bits[..NUMBER_OF_SUBPACKETS_SIZE].load_be::<usize>();
     let mut remaining_bits = &bits[NUMBER_OF_SUBPACKETS_SIZE..];
-
-    println!(
-        "decode_operator_for_bits nsubpacket bits {}, nsubpackets {}, remaining bits {}",
-        bits[..NUMBER_OF_SUBPACKETS_SIZE].to_string(),
-        nsubpackets,
-        remaining_bits.to_string()
-    );
 
     let mut result: Vec<Packet> = Vec::new();
 
@@ -104,23 +82,17 @@ fn decode_operator_by_subpackets(bits: &D16BitSlice) -> (Vec<Packet>, &D16BitSli
         result.push(new_packet);
     }
 
-    println!(
-        "END decode_operator_by_subpackets {}",
-        remaining_bits.to_string()
-    );
     (result, remaining_bits)
 }
 
 fn decode_operator(bits: &D16BitSlice) -> (Vec<Packet>, &D16BitSlice) {
     let rest = &bits[1..];
-    println!("START decode_operator {}, {}", bits[0], rest.to_string());
     let result = if bits[0] {
         decode_operator_by_subpackets(rest)
     } else {
         decode_operator_for_bits(rest)
     };
 
-    println!("END decode_operator {}", result.1);
     return result;
 }
 
@@ -130,27 +102,17 @@ fn decode_packet(packet_bits: &D16BitSlice) -> (Packet, &D16BitSlice) {
     let packet_type = packet_bits[PACKET_VERSION_SIZE..LITERAL_START].load_be::<u8>();
     let packet_header = PacketHeader {
         packet_version: packet_bits[0..PACKET_VERSION_SIZE].load_be::<u8>(),
-        packet_type: packet_type,
+        _packet_type: packet_type,
     };
     let packet_contents = &packet_bits[LITERAL_START..];
-
-    println!(
-        "START decode_packet version {}, type {} -> {}, {}",
-        packet_header.packet_version,
-        &packet_bits[PACKET_VERSION_SIZE..LITERAL_START],
-        packet_header.packet_type,
-        packet_bits.to_string()
-    );
 
     match FromPrimitive::from_u8(packet_type) {
         Some(PacketType::Literal) => {
             let (literal, remaining_bits) = decode_literal(packet_contents);
-            println!("END decode_packet {}", remaining_bits.to_string());
             return (Packet::Literal(packet_header, literal), remaining_bits);
         }
         None => {
             let (operator, remaining_bits) = decode_operator(packet_contents);
-            println!("END decode_packet {}", remaining_bits.to_string());
             return (Packet::Operator(packet_header, operator), remaining_bits);
         }
     }
@@ -198,10 +160,7 @@ fn test() {
     ];
 
     for input in inputs {
-        println!("START Testing {}", input);
-        let (packet, _remaining_bits) = decode_packet_from_hex(input);
-        println!("Packet version sum {}", compute_version_sum(&packet));
-        println!("END Testing {}\n", input);
+        let (_packet, _remaining_bits) = decode_packet_from_hex(input);
     }
 }
 
