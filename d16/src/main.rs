@@ -9,7 +9,7 @@ const PACKET_VERSION_SIZE: usize = 3;
 const PACKET_TYPE_SIZE: usize = 3;
 const LITERAL_GROUP_SIZE: usize = 4;
 
-type Literal = u32;
+type Literal = u64;
 type PacketScalarType = u8;
 type PacketVersion = u8;
 type OpType = PacketScalarType;
