@@ -3,16 +3,12 @@ use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::fs;
 
-const BYTE_SIZE: usize = 8;
 const MIN_PACKET_SIZE: usize = 6;
 const PACKET_VERSION_SIZE: usize = 3;
 const PACKET_TYPE_SIZE: usize = 3;
 const LITERAL_GROUP_SIZE: usize = 4;
 
 type Literal = u64;
-type PacketScalarType = u8;
-type PacketVersion = u8;
-type OpType = PacketScalarType;
 
 struct PacketHeader {
     packet_version: u8,
@@ -203,7 +199,7 @@ fn test() {
 
     for input in inputs {
         println!("START Testing {}", input);
-        let (packet, remaining_bits) = decode_packet_from_hex(input);
+        let (packet, _remaining_bits) = decode_packet_from_hex(input);
         println!("Packet version sum {}", compute_version_sum(&packet));
         println!("END Testing {}\n", input);
     }
