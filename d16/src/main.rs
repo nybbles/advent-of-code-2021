@@ -12,7 +12,7 @@ type Literal = u64;
 
 struct PacketHeader {
     packet_version: u8,
-    _packet_type: u8,
+    packet_type: u8,
 }
 
 enum Packet {
@@ -23,6 +23,17 @@ enum Packet {
 #[derive(FromPrimitive)]
 enum PacketType {
     Literal = 4,
+}
+
+#[derive(FromPrimitive)]
+enum PacketOperatorType {
+    Sum = 0,
+    Product,
+    Minimum,
+    Maximum,
+    GreaterThan = 5,
+    LessThan,
+    EqualTo,
 }
 
 type D16BitSlice = BitSlice<Msb0, u8>;
@@ -102,7 +113,7 @@ fn decode_packet(packet_bits: &D16BitSlice) -> (Packet, &D16BitSlice) {
     let packet_type = packet_bits[PACKET_VERSION_SIZE..LITERAL_START].load_be::<u8>();
     let packet_header = PacketHeader {
         packet_version: packet_bits[0..PACKET_VERSION_SIZE].load_be::<u8>(),
-        _packet_type: packet_type,
+        packet_type: packet_type,
     };
     let packet_contents = &packet_bits[LITERAL_START..];
 
@@ -147,6 +158,62 @@ fn compute_version_sum(packet: &Packet) -> u32 {
     }
 }
 
+fn compute_packet_result(packet: &Packet) -> u64 {
+    match packet {
+        Packet::Literal(_packet_header, literal) => *literal,
+        Packet::Operator(packet_header, packets) => {
+            let subpacket_results: Vec<u64> =
+                packets.into_iter().map(compute_packet_result).collect();
+
+            let result: u64 = match FromPrimitive::from_u8(packet_header.packet_type) {
+                Some(PacketOperatorType::Sum) => subpacket_results.into_iter().sum(),
+                Some(PacketOperatorType::Product) => subpacket_results
+                    .into_iter()
+                    .reduce(|acc, x| acc * x)
+                    .expect("Product failed"),
+                Some(PacketOperatorType::Minimum) => subpacket_results
+                    .into_iter()
+                    .reduce(|acc, x| if acc <= x { acc } else { x })
+                    .expect("Minimum failed"),
+                Some(PacketOperatorType::Maximum) => subpacket_results
+                    .into_iter()
+                    .reduce(|acc, x| if acc >= x { acc } else { x })
+                    .expect("Maximum failed"),
+                Some(PacketOperatorType::GreaterThan) => {
+                    assert!(subpacket_results.len() == 2);
+                    let result = subpacket_results[0] > subpacket_results[1];
+                    if result {
+                        1
+                    } else {
+                        0
+                    }
+                }
+                Some(PacketOperatorType::LessThan) => {
+                    assert!(subpacket_results.len() == 2);
+                    let result = subpacket_results[0] < subpacket_results[1];
+                    if result {
+                        1
+                    } else {
+                        0
+                    }
+                }
+                Some(PacketOperatorType::EqualTo) => {
+                    assert!(subpacket_results.len() == 2);
+                    let result = subpacket_results[0] == subpacket_results[1];
+                    if result {
+                        1
+                    } else {
+                        0
+                    }
+                }
+                None => panic!("unxpected operator type found"),
+            };
+
+            result
+        }
+    }
+}
+
 #[test]
 fn test() {
     let inputs = [
@@ -157,10 +224,20 @@ fn test() {
         "620080001611562C8802118E34",
         "C0015000016115A2E0802F182340",
         "A0016C880162017C3686B18A3D4780",
+        "C200B40A82",
+        "04005AC33890",
+        "880086C3E88112",
+        "CE00C43D881120",
+        "D8005AC2A8F0",
+        "F600BC2D8F",
+        "9C005AC2F8F0",
+        "9C0141080250320F1802104A08",
     ];
 
     for input in inputs {
-        let (_packet, _remaining_bits) = decode_packet_from_hex(input);
+        let (packet, _remaining_bits) = decode_packet_from_hex(input);
+        println!("Packet version sum {}", compute_version_sum(&packet));
+        println!("Packet result {}", compute_packet_result(&packet));
     }
 }
 
@@ -184,4 +261,5 @@ fn main() {
 
     let (packet, _remaining_bits) = decode_packet_from_hex(input);
     println!("Packet version sum {}", compute_version_sum(&packet));
+    println!("Packet result {}", compute_packet_result(&packet));
 }
