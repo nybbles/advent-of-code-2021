@@ -202,4 +202,9 @@ def check_trajectory(target_x, target_y, initial_dx, initial_dy, final_x,
   return trajectory
 
 
-print(check_trajectory(target_x, target_y, 13, 80, 91, -163, 3240))
+y1, y0 = target_y
+
+initial_dy = abs(y1) - 1
+ans = cumsum(initial_dy)
+
+print(ans)
