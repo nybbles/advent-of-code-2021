@@ -171,3 +171,35 @@ for trajectory in determine_dx(target_x):
 on_target_trajectories.sort(key=lambda x: x[-1], reverse=True)
 # print(on_target_trajectories[0])
 print(on_target_trajectories)
+
+
+def check_trajectory(target_x, target_y, initial_dx, initial_dy, final_x,
+                     final_y, max_y):
+  x, y, max_y = 0, 0, 0
+  dx = initial_dx
+  dy = initial_dy
+  trajectory = []
+
+  while True:
+    trajectory.append((dx, dy, x, y, max_y))
+
+    x0, x1 = target_x
+    y1, y0 = target_y
+
+    if x >= x0 and x <= x1 and y <= y0 and y >= y1:
+      trajectory.append("In target")
+      break
+
+    if x > x1 or y < y1:
+      trajectory.append("Overshot target")
+
+    x = x + dx
+    y = y + dy
+    max_y = max(y, max_y)
+    dx = max(dx - 1, 0)
+    dy = dy - 1
+
+  return trajectory
+
+
+print(check_trajectory(target_x, target_y, 13, 80, 91, -163, 3240))
