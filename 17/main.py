@@ -40,6 +40,7 @@ def cumsum_iter(start):
 
 
 def cumsum(n):
+  assert (n >= 0)
   return int(n * (n + 1) / 2)
 
 
@@ -99,26 +100,44 @@ def determine_maxy_trajectory(initial_dx, dx, target_y):
   # dy = (y + constant0) / constant1
   # if dx = 0, then timesteps >= n.
   # Assumption: Trajectories where dx=0, but dy>0 are not valid.
-  # cumsum(n) to get to the apex, then cumsum(m) to descend, where m>=n
+  # cumsum(n) to get to the apex, then cumsum(m) to descend
 
   y1, y0 = target_y
   assert (y0 >= y1)
   n = get_ntimesteps(initial_dx, dx)
 
   if (dx == 0):
-    print(initial_dx, dx, n)
-    for initial_dy in range(n, 1, -1):
-      max_y = cumsum(initial_dy)
-      for i in cumsum_iter(1):
-        final_y = max_y - i
-        print(final_y, y0, y1)
-        if final_y < y1:
-          break
-        if final_y <= y0:
-          print("Found dx=0 trajectory", final_y, initial_dy, max_y)
-          return final_y, initial_dy, max_y
+    # print(initial_dx, dx, n)
+    # TODO: Start from smallest, then go to largest, until no longer in target?
 
-    return None
+    def check_if_vertical_descent_hits_target(max_y, target_y):
+      y1, y0 = target_y
+      assert (max_y >= y0)
+
+      ys_on_descent = map(lambda i: max_y - i, cumsum_iter(0))
+      for final_y in ys_on_descent:
+        if final_y < y1:
+          return False, None
+
+        if final_y <= y0:
+          return True, final_y
+
+    best_result = None
+
+    for initial_dy in count(0):
+      max_y = cumsum(initial_dy)
+      hits_target, final_y = check_if_vertical_descent_hits_target(
+          max_y, target_y)
+
+      if not hits_target:
+        return best_result
+
+      # print("Found better dx=0 trajectory", final_y, initial_dy, max_y)
+
+      if best_result is None or best_result[2] < max_y:
+        best_result = final_y, initial_dy, max_y
+
+    raise Exception("Not expected to get here")
   else:
     dys = []
 
@@ -138,6 +157,9 @@ def determine_maxy_trajectory(initial_dx, dx, target_y):
 target_x, target_y = parse_input(input)
 print(target_x, target_y)
 
+# print(determine_dx(target_x))
+# raise Exception("WTF")
+
 on_target_trajectories = []
 for trajectory in determine_dx(target_x):
   x, initial_dx, dx = trajectory
@@ -147,4 +169,5 @@ for trajectory in determine_dx(target_x):
     on_target_trajectories.append((initial_dx, initial_dy, x, y, max_y))
 
 on_target_trajectories.sort(key=lambda x: x[-1], reverse=True)
-print(on_target_trajectories[0])
+# print(on_target_trajectories[0])
+print(on_target_trajectories)
