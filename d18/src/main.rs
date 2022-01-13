@@ -15,6 +15,22 @@ mod types;
 use crate::parser::*;
 use crate::types::*;
 
+fn snailfish_add(left: SnailfishNumber, right: SnailfishNumber) -> SnailfishNumber {}
+
+fn snailfish_reduce(number: SnailfishNumber) -> SnailfishNumber {}
+
+#[test]
+fn test_snailfish_add_tc01() {
+    let input = "[1,1]
+[2,2]
+[3,3]
+[4,4]";
+    match parse_input(input) {
+        Ok(numbers) => assert!(true),
+        Err(msg) => assert!(false),
+    }
+}
+
 fn main() {
     println!("Hello, world!");
 }

@@ -1,7 +1,7 @@
 use crate::types::*;
 
 use trees::tr;
-use trees::{Node, Tree};
+use trees::Node;
 
 use nom::{
   branch::alt,
@@ -44,7 +44,7 @@ fn tree(input: &str) -> IResult<&str, SnailfishNumber> {
   alt((leaf, subtree))(input)
 }
 
-fn parse_tree(input: &str) -> Result<Tree<NodeValue>, &'static str> {
+fn parse_tree(input: &str) -> Result<SnailfishNumber, &'static str> {
   let (remainder, parsed) = tree(input).unwrap();
   if remainder.is_empty() {
     Ok(parsed)
@@ -74,7 +74,7 @@ fn trees_eq(root0: &Node<NodeValue>, root1: &Node<NodeValue>) -> bool {
 
 #[test]
 fn test_parse_simple_input() {
-  let testcases: Vec<(&str, Tree<NodeValue>)> = vec![
+  let testcases: Vec<(&str, SnailfishNumber)> = vec![
     ("1", tr(Some(1))),
     ("[1,2]", tr(None) / tr(Some(1)) / tr(Some(2))),
     (
@@ -92,7 +92,7 @@ fn test_parse_simple_input() {
   ];
   for testcase in testcases {
     let input = testcase.0;
-    let expected: Tree<NodeValue> = testcase.1;
+    let expected = testcase.1;
     match parse_tree(input) {
       Ok(tree) => {
         let result = trees_eq(tree.root(), expected.root());
@@ -104,4 +104,8 @@ fn test_parse_simple_input() {
       Err(_msg) => assert!(false),
     }
   }
+}
+
+pub fn parse_input(input: &str) -> Result<Vec<SnailfishNumber>, &'static str> {
+  input.lines().map(|line| parse_tree(line)).collect()
 }
