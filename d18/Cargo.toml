@@ -1,0 +1,10 @@
+[package]
+name = "d18"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+
+[dependencies]
+nom = "7.1.0"
+trees = "0.4.2"
