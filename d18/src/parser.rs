@@ -1,7 +1,7 @@
 use crate::types::*;
 
 use trees::tr;
-use trees::Tree;
+use trees::{Node, Tree};
 
 use nom::{
   branch::alt,
@@ -25,7 +25,7 @@ fn subtree_separator(input: &str) -> IResult<&str, char> {
 fn leaf(input: &str) -> IResult<&str, SnailfishNumber> {
   one_of("0123456789")(input).map(|(remainder, matched)| {
     let number = matched.to_digit(10).unwrap();
-    (remainder, tr(NodeValue(Some(number))))
+    (remainder, tr(Some(number)))
   })
 }
 
@@ -36,10 +36,7 @@ fn subtree(input: &str) -> IResult<&str, SnailfishNumber> {
     closing_delimiter,
   )(input)
   .map(|(remainder, (left_subtree, right_subtree))| {
-    (
-      remainder,
-      tr(NodeValue(None)) / left_subtree / right_subtree,
-    )
+    (remainder, tr(None) / left_subtree / right_subtree)
   })
 }
 
@@ -56,38 +53,54 @@ fn parse_tree(input: &str) -> Result<Tree<NodeValue>, &'static str> {
   }
 }
 
+#[cfg(test)]
+fn trees_eq(root0: &Node<NodeValue>, root1: &Node<NodeValue>) -> bool {
+  if root0.node_count() != root1.node_count() {
+    return false;
+  }
+
+  if root0.data() != root1.data() {
+    return false;
+  }
+
+  for (subtree0, subtree1) in root0.iter().zip(root1.iter()) {
+    if !trees_eq(subtree0, subtree1) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 #[test]
 fn test_parse_simple_input() {
   let testcases: Vec<(&str, Tree<NodeValue>)> = vec![
-    ("1", tr(NodeValue(Some(1)))),
-    (
-      "[1,2]",
-      tr(NodeValue(None)) / tr(NodeValue(Some(1))) / tr(NodeValue(Some(2))),
-    ),
+    ("1", tr(Some(1))),
+    ("[1,2]", tr(None) / tr(Some(1)) / tr(Some(2))),
     (
       "[[1,2],3]",
-      tr(NodeValue(None))
-        / (tr(NodeValue(None)) / tr(NodeValue(Some(1))) / tr(NodeValue(Some(2))))
-        / tr(NodeValue(Some(3))),
+      tr(None) / (tr(None) / tr(Some(1)) / tr(Some(2))) / tr(Some(3)),
     ),
     (
       "[9,[8,7]]",
-      tr(NodeValue(None))
-        / tr(NodeValue(Some(9)))
-        / (tr(NodeValue(None)) / tr(NodeValue(Some(8))) / tr(NodeValue(Some(7)))),
+      tr(None) / tr(Some(9)) / (tr(None) / tr(Some(8)) / tr(Some(7))),
     ),
     (
       "[[1,9],[8,5]]",
-      tr(NodeValue(None))
-        / (tr(NodeValue(None)) / tr(NodeValue(Some(1))) / tr(NodeValue(Some(9))))
-        / (tr(NodeValue(None)) / tr(NodeValue(Some(8))) / tr(NodeValue(Some(5)))),
+      tr(None) / (tr(None) / tr(Some(1)) / tr(Some(9))) / (tr(None) / tr(Some(8)) / tr(Some(5))),
     ),
   ];
   for testcase in testcases {
     let input = testcase.0;
     let expected: Tree<NodeValue> = testcase.1;
     match parse_tree(input) {
-      Ok(tree) => assert_eq!(tree.to_string(), expected.to_string()),
+      Ok(tree) => {
+        let result = trees_eq(tree.root(), expected.root());
+        if !result {
+          println!("{}, {:?} <--> {:?}", input, tree, expected);
+        }
+        assert!(result)
+      }
       Err(_msg) => assert!(false),
     }
   }
