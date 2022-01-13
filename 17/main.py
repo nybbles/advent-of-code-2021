@@ -1,7 +1,10 @@
 #! python
 
+from enum import Enum
 import re
 from itertools import count
+from collections import namedtuple
+from more_itertools import ilen
 
 input = "target area: x=20..30, y=-10..-5"
 input = open("17/input.txt", "r").read()
@@ -172,34 +175,41 @@ on_target_trajectories.sort(key=lambda x: x[-1], reverse=True)
 # print(on_target_trajectories[0])
 print(on_target_trajectories)
 
+TrajectoryElement = namedtuple('TrajectoryElement',
+                               ['dx', 'dy', 'x', 'y', 'max_y', 'status'])
+TrajectoryStatus = Enum('TrajectoryStatus',
+                        'IN_TRANSIT IN_TARGET OVERSHOT_TARGET')
 
-def check_trajectory(target_x, target_y, initial_dx, initial_dy, final_x,
-                     final_y, max_y):
+def run_trajectory(target_x, target_y, initial_dx, initial_dy):
   x, y, max_y = 0, 0, 0
   dx = initial_dx
   dy = initial_dy
   trajectory = []
 
   while True:
-    trajectory.append((dx, dy, x, y, max_y))
-
     x0, x1 = target_x
     y1, y0 = target_y
 
+    status = None
     if x >= x0 and x <= x1 and y <= y0 and y >= y1:
-      trajectory.append("In target")
-      break
+      status = TrajectoryStatus.IN_TARGET
+    elif x > x1 or y < y1:
+      status = TrajectoryStatus.OVERSHOT_TARGET
+    else:
+      status = TrajectoryStatus.IN_TRANSIT
 
-    if x > x1 or y < y1:
-      trajectory.append("Overshot target")
+    trajectory_element = TrajectoryElement(dx, dy, x, y, max_y, status)
+    trajectory.append(trajectory_element)
 
-    x = x + dx
-    y = y + dy
-    max_y = max(y, max_y)
-    dx = max(dx - 1, 0)
-    dy = dy - 1
-
-  return trajectory
+    match trajectory_element.status:
+      case TrajectoryStatus.IN_TARGET | TrajectoryStatus.OVERSHOT_TARGET:
+        return trajectory
+      case TrajectoryStatus.IN_TRANSIT:
+        x = x + dx
+        y = y + dy
+        max_y = max(y, max_y)
+        dx = max(dx - 1, 0)
+        dy = dy - 1
 
 
 y1, y0 = target_y
@@ -208,3 +218,27 @@ initial_dy = abs(y1) - 1
 ans = cumsum(initial_dy)
 
 print(ans)
+
+
+def on_target_initial_velocities(target_x, target_y):
+  x0, x1 = target_x
+  y1, y0 = target_y
+
+  max_initial_dx = x1
+  min_initial_dx = 1
+
+  max_initial_dy = abs(y1) - 1  # from previous solution
+  min_initial_dy = y1
+
+
+  for dx in range(min_initial_dx, max_initial_dx + 1):
+    for dy in range(min_initial_dy, max_initial_dy + 1):
+      trajectory = run_trajectory(target_x, target_y, dx, dy)
+      end_point = trajectory[-1]
+      assert(end_point.status != TrajectoryStatus.IN_TRANSIT)
+      if end_point.status == TrajectoryStatus.IN_TARGET:
+        yield (dx, dy)
+
+print(ilen(on_target_initial_velocities(target_x, target_y)))
+
+      
