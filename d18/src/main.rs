@@ -1,7 +1,3 @@
-use std::fmt;
-use trees::tr;
-use trees::Tree;
-
 // Adding -> requires constructing a new tree out of two subtrees.
 // Exploding -> requires finding the leftmost node that is at depth at least 4,
 // and then finding the leaves immediately on the left and the right. These
