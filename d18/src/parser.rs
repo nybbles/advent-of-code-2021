@@ -44,32 +44,13 @@ fn tree(input: &str) -> IResult<&str, SnailfishNumber> {
   alt((leaf, subtree))(input)
 }
 
-fn parse_tree(input: &str) -> Result<SnailfishNumber, &'static str> {
+pub fn parse_tree(input: &str) -> Result<SnailfishNumber, &'static str> {
   let (remainder, parsed) = tree(input).unwrap();
   if remainder.is_empty() {
     Ok(parsed)
   } else {
     Err("Parse error: did not consume whole input")
   }
-}
-
-#[cfg(test)]
-fn trees_eq(root0: &Node<NodeValue>, root1: &Node<NodeValue>) -> bool {
-  if root0.node_count() != root1.node_count() {
-    return false;
-  }
-
-  if root0.data() != root1.data() {
-    return false;
-  }
-
-  for (subtree0, subtree1) in root0.iter().zip(root1.iter()) {
-    if !trees_eq(subtree0, subtree1) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 #[test]
