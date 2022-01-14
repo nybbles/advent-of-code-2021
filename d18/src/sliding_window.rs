@@ -13,9 +13,9 @@ type SlidingWindowItem<'a, T> = (
 type SlidingWindowBuffer<'a, T> = VecDeque<OptionalIteratorItem<'a, T>>;
 
 enum SlidingWindowState {
-  BufferToBeFilled,
-  BufferFilled,
-  BufferEmptied,
+  IterationNotStarted,
+  Iterating,
+  IterationDone,
 }
 
 struct SlidingWindow<'a, I: Iterator> {
@@ -39,18 +39,19 @@ where
 
   fn next(&mut self) -> Option<SlidingWindowItem<'a, I::Item>> {
     match (self.iter.next(), &self.state) {
-      (None, SlidingWindowState::BufferEmptied | SlidingWindowState::BufferToBeFilled) => None,
-      (None, SlidingWindowState::BufferFilled) => {
+      (None, SlidingWindowState::IterationDone | SlidingWindowState::IterationNotStarted) => None,
+      (None, SlidingWindowState::Iterating) => {
         self.buffer.pop_front();
         self.buffer.push_back(None);
+        self.state = SlidingWindowState::IterationDone;
         Some(buffer_to_sliding_window_item::<I>(&mut self.buffer))
       }
       // TODO: Implement
-      (Some(item), SlidingWindowState::BufferEmptied) => None,
+      (Some(item), SlidingWindowState::IterationDone) => None,
       // TODO: Implement
-      (Some(item), SlidingWindowState::BufferToBeFilled) => None,
+      (Some(item), SlidingWindowState::IterationNotStarted) => None,
       // TODO: Implement
-      (Some(item), SlidingWindowState::BufferFilled) => None,
+      (Some(item), SlidingWindowState::Iterating) => None,
     }
   }
 }
@@ -61,7 +62,7 @@ impl<'a, I: Iterator> SlidingWindow<'a, I> {
     SlidingWindow {
       iter: iter,
       buffer: buffer,
-      state: SlidingWindowState::BufferToBeFilled,
+      state: SlidingWindowState::IterationNotStarted,
     }
   }
 }
