@@ -1,8 +1,5 @@
 use crate::types::*;
 
-use trees::tr;
-use trees::Node;
-
 use nom::{
   branch::alt,
   character::complete::{char, one_of},
@@ -22,35 +19,58 @@ fn subtree_separator(input: &str) -> IResult<&str, char> {
   char(',')(input)
 }
 
-fn leaf(input: &str) -> IResult<&str, SnailfishNumber> {
+/*
+
+fn leaf(input: &str, snailfish_number: SnailfishNumber) -> IResult<&str, SnailfishNumberPart> {
   one_of("0123456789")(input).map(|(remainder, matched)| {
     let number = matched.to_digit(10).unwrap();
-    (remainder, tr(Some(number)))
+    let leaf = SnailfishNumberPart::from(snailfish_number.orphan(Some(number)));
+    (remainder, leaf)
   })
 }
 
-fn subtree(input: &str) -> IResult<&str, SnailfishNumber> {
+fn subtree(input: &str, snailfish_number: SnailfishNumber) -> IResult<&str, SnailfishNumberPart> {
   delimited(
     opening_delimiter,
     separated_pair(tree, subtree_separator, tree),
     closing_delimiter,
   )(input)
   .map(|(remainder, (left_subtree, right_subtree))| {
-    (remainder, tr(None) / left_subtree / right_subtree)
+    (remainder, tree!(None => { left_subtree , right_subtree }))
   })
 }
 
-fn tree(input: &str) -> IResult<&str, SnailfishNumber> {
-  alt((leaf, subtree))(input)
+fn tree(input: &str, snailfish_number: SnailfishNumber) -> IResult<&str, SnailfishNumberPart> {
+  alt((leaf(snailfish_number), subtree(snailfish_number)))(input)
 }
 
+fn tree(input: &str, tree: mut& Tree) -> IResult<&str, Node> {
+  alt((leaf(tree), subtree(tree)))(input)
+}
+
+
+
 pub fn parse_tree(input: &str) -> Result<SnailfishNumber, &'static str> {
-  let (remainder, parsed) = tree(input).unwrap();
+  let mut snailfish_number = SnailfishNumber::new(None);
+  let (remainder, parsed) = tree(input, snailfish_number).unwrap();
   if remainder.is_empty() {
-    Ok(parsed)
+    Ok(snailfish_number)
   } else {
     Err("Parse error: did not consume whole input")
   }
+}
+
+#[test]
+fn test_tree_macro() {
+ let tree = tree! {
+  "root" => {
+    "child a",
+    "child b" => {
+        "grandchild a",
+        "grandchild b",
+    },
+    "child c",
+ }
 }
 
 #[test]
@@ -90,3 +110,5 @@ fn test_parse_simple_input() {
 pub fn parse_input(input: &str) -> Result<Vec<SnailfishNumber>, &'static str> {
   input.lines().map(|line| parse_tree(line)).collect()
 }
+
+*/

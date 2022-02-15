@@ -1,6 +1,3 @@
-use trees::tr;
-// use trees::{Node, Tree};
-
 // Adding -> requires constructing a new tree out of two subtrees.
 // Exploding -> requires finding the leftmost node that is at depth at least 4,
 // and then finding the leaves immediately on the left and the right. These
@@ -19,8 +16,9 @@ mod types;
 use crate::parser::*;
 use crate::types::*;
 
+/*
 fn snailfish_add(left: SnailfishNumber, right: SnailfishNumber) -> SnailfishNumber {
-    tr(None) / left / right
+
 }
 
 #[test]
@@ -31,18 +29,21 @@ fn test_snailfish_add() {
     let expected = tr(None) / tr(Some(1)) / (tr(None) / tr(Some(2)) / tr(Some(3)));
     assert!(trees_eq(result.root(), expected.root()))
 }
+*/
 
 enum ReduceAction {
     Explode,
     Split,
 }
 
+/*
 fn snailfish_find_next_reduce_action(input: SnailfishNumber) -> Option<ReduceAction> {
     if input.has_no_child() {
         return None;
     }
     Some(ReduceAction::Explode)
 }
+*/
 
 // fn snailfish_explode()
 // Need to modify the nested pair
@@ -53,6 +54,7 @@ fn snailfish_find_next_reduce_action(input: SnailfishNumber) -> Option<ReduceAct
 
 // fn snailfish_reduce(number: SnailfishNumber) -> SnailfishNumber {}
 
+/*
 #[test]
 fn test_snailfish_add_and_reduce_tc01() {
     let input = "[1,1]
@@ -64,6 +66,7 @@ fn test_snailfish_add_and_reduce_tc01() {
         Err(_msg) => assert!(false),
     }
 }
+*/
 
 fn main() {
     println!("Hello, world!");
