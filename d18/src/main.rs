@@ -1,5 +1,5 @@
 use trees::tr;
-use trees::{Node, Tree};
+// use trees::{Node, Tree};
 
 // Adding -> requires constructing a new tree out of two subtrees.
 // Exploding -> requires finding the leftmost node that is at depth at least 4,
@@ -17,7 +17,6 @@ mod sliding_window;
 mod types;
 
 use crate::parser::*;
-use crate::sliding_window::*;
 use crate::types::*;
 
 fn snailfish_add(left: SnailfishNumber, right: SnailfishNumber) -> SnailfishNumber {
@@ -33,6 +32,25 @@ fn test_snailfish_add() {
     assert!(trees_eq(result.root(), expected.root()))
 }
 
+enum ReduceAction {
+    Explode,
+    Split,
+}
+
+fn snailfish_find_next_reduce_action(input: SnailfishNumber) -> Option<ReduceAction> {
+    if input.has_no_child() {
+        return None;
+    }
+    Some(ReduceAction::Explode)
+}
+
+// fn snailfish_explode()
+// Need to modify the nested pair
+// Need to modify first regular number on left and on right of the nested pair
+
+// fn snailfish_split()
+// Need to modify the regular number and replace with a pair
+
 // fn snailfish_reduce(number: SnailfishNumber) -> SnailfishNumber {}
 
 #[test]
@@ -42,8 +60,8 @@ fn test_snailfish_add_and_reduce_tc01() {
 [3,3]
 [4,4]";
     match parse_input(input) {
-        Ok(numbers) => assert!(true),
-        Err(msg) => assert!(false),
+        Ok(_numbers) => assert!(true),
+        Err(_msg) => assert!(false),
     }
 }
 

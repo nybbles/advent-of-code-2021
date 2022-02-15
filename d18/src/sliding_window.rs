@@ -1,5 +1,7 @@
+/*
 use std::collections::VecDeque;
 use std::rc::Rc;
+use trees::{tr, Node, Tree};
 
 const WINDOW_SIZE: usize = 3;
 
@@ -48,6 +50,7 @@ where
   type Item = SlidingWindowItem<I::Item>;
 
   fn next(&mut self) -> Option<SlidingWindowItem<I::Item>> {
+    println!("{}", self.buffer.len());
     match (self.iter.next(), &self.state) {
       (None, SlidingWindowState::IterationDone | SlidingWindowState::IterationNotStarted) => None,
       (None, SlidingWindowState::Iterating) => {
@@ -56,11 +59,29 @@ where
         self.state = SlidingWindowState::IterationDone;
         Some(buffer_to_sliding_window_item::<I>(&self.buffer))
       }
-      // TODO: Implement
-      (Some(item), SlidingWindowState::IterationDone) => None,
-      // TODO: Implement
-      (Some(item), SlidingWindowState::IterationNotStarted) => None,
-      // TODO: Implement
+      (Some(_), SlidingWindowState::IterationDone) => {
+        // There should be no way to get another item from iter while in the
+        // iteration done state.
+        panic!("Logic error");
+      }
+      (Some(item), SlidingWindowState::IterationNotStarted) => {
+        self.buffer.push_back(None);
+        self.buffer.push_back(Some(item));
+        match self.iter.next() {
+          // Only one item in iter, so return single window ((), item, ())
+          None => {
+            self.buffer.push_back(None);
+            self.state = SlidingWindowState::IterationDone;
+            Some(buffer_to_sliding_window_item::<I>(&self.buffer))
+          }
+          // More than two items, so return first window ((), item0, item1)
+          Some(next_item) => {
+            self.buffer.push_back(Some(next_item));
+            self.state = SlidingWindowState::Iterating;
+            Some(buffer_to_sliding_window_item::<I>(&self.buffer))
+          }
+        }
+      }
       (Some(item), SlidingWindowState::Iterating) => {
         self.buffer.pop_front();
         self.buffer.push_back(Some(item));
@@ -76,7 +97,7 @@ where
   I::Item: Clone,
 {
   fn new(iter: I) -> SlidingWindow<I> {
-    let buffer = VecDeque::from([None, None, None]);
+    let buffer = VecDeque::from([]);
     SlidingWindow {
       iter: iter,
       buffer: buffer,
@@ -84,9 +105,11 @@ where
     }
   }
 }
+*/
 
+/*
 #[test]
-fn test_sliding_window() {
+fn test_sliding_window_u32() {
   let input = vec![1u32, 2, 3];
   let result: Vec<SlidingWindowItem<u32>> = SlidingWindow::new(input.iter().map(|&x| x)).collect();
   let expected = vec![
@@ -97,3 +120,11 @@ fn test_sliding_window() {
 
   assert_eq!(result, expected);
 }
+
+#[test]
+fn test_sliding_window_tree() {
+  type Foo = u32;
+  let input: Tree<u32> = tr(0) / tr(1) / tr(2);
+  let result: Vec<Rc<&Node<u32>>> = SlidingWindow::new(input.iter().map(|x| Rc::new(x))).collect();
+}
+*/
