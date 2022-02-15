@@ -1,3 +1,4 @@
+use crate::trees::Tree;
 use crate::types::*;
 
 use nom::{
@@ -19,76 +20,86 @@ fn subtree_separator(input: &str) -> IResult<&str, char> {
   char(',')(input)
 }
 
-/*
-
-fn leaf(input: &str, snailfish_number: SnailfishNumber) -> IResult<&str, SnailfishNumberPart> {
+fn leaf(input: &str) -> IResult<&str, SnailfishNumber> {
   one_of("0123456789")(input).map(|(remainder, matched)| {
     let number = matched.to_digit(10).unwrap();
-    let leaf = SnailfishNumberPart::from(snailfish_number.orphan(Some(number)));
-    (remainder, leaf)
+    (remainder, SnailfishNumber::Leaf(number))
   })
 }
 
-fn subtree(input: &str, snailfish_number: SnailfishNumber) -> IResult<&str, SnailfishNumberPart> {
+fn subtree(input: &str) -> IResult<&str, SnailfishNumber> {
   delimited(
     opening_delimiter,
     separated_pair(tree, subtree_separator, tree),
     closing_delimiter,
   )(input)
   .map(|(remainder, (left_subtree, right_subtree))| {
-    (remainder, tree!(None => { left_subtree , right_subtree }))
+    (
+      remainder,
+      Tree::NonLeaf {
+        left: Box::new(left_subtree),
+        right: Box::new(right_subtree),
+      },
+    )
   })
 }
 
-fn tree(input: &str, snailfish_number: SnailfishNumber) -> IResult<&str, SnailfishNumberPart> {
-  alt((leaf(snailfish_number), subtree(snailfish_number)))(input)
+fn tree(input: &str) -> IResult<&str, SnailfishNumber> {
+  alt((leaf, subtree))(input)
 }
-
-fn tree(input: &str, tree: mut& Tree) -> IResult<&str, Node> {
-  alt((leaf(tree), subtree(tree)))(input)
-}
-
-
 
 pub fn parse_tree(input: &str) -> Result<SnailfishNumber, &'static str> {
-  let mut snailfish_number = SnailfishNumber::new(None);
-  let (remainder, parsed) = tree(input, snailfish_number).unwrap();
+  let (remainder, parsed) = tree(input).unwrap();
   if remainder.is_empty() {
-    Ok(snailfish_number)
+    Ok(parsed)
   } else {
     Err("Parse error: did not consume whole input")
   }
 }
 
 #[test]
-fn test_tree_macro() {
- let tree = tree! {
-  "root" => {
-    "child a",
-    "child b" => {
-        "grandchild a",
-        "grandchild b",
-    },
-    "child c",
- }
-}
-
-#[test]
 fn test_parse_simple_input() {
   let testcases: Vec<(&str, SnailfishNumber)> = vec![
-    ("1", tr(Some(1))),
-    ("[1,2]", tr(None) / tr(Some(1)) / tr(Some(2))),
+    ("1", Tree::Leaf(1)),
+    (
+      "[1,2]",
+      Tree::NonLeaf {
+        left: Box::new(Tree::Leaf(1)),
+        right: Box::new(Tree::Leaf(2)),
+      },
+    ),
     (
       "[[1,2],3]",
-      tr(None) / (tr(None) / tr(Some(1)) / tr(Some(2))) / tr(Some(3)),
+      Tree::NonLeaf {
+        left: Box::new(Tree::NonLeaf {
+          left: Box::new(Tree::Leaf(1)),
+          right: Box::new(Tree::Leaf(2)),
+        }),
+        right: Box::new(Tree::Leaf(3)),
+      },
     ),
     (
       "[9,[8,7]]",
-      tr(None) / tr(Some(9)) / (tr(None) / tr(Some(8)) / tr(Some(7))),
+      Tree::NonLeaf {
+        left: Box::new(Tree::Leaf(9)),
+        right: Box::new(Tree::NonLeaf {
+          left: Box::new(Tree::Leaf(8)),
+          right: Box::new(Tree::Leaf(7)),
+        }),
+      },
     ),
     (
       "[[1,9],[8,5]]",
-      tr(None) / (tr(None) / tr(Some(1)) / tr(Some(9))) / (tr(None) / tr(Some(8)) / tr(Some(5))),
+      Tree::NonLeaf {
+        left: Box::new(Tree::NonLeaf {
+          left: Box::new(Tree::Leaf(1)),
+          right: Box::new(Tree::Leaf(9)),
+        }),
+        right: Box::new(Tree::NonLeaf {
+          left: Box::new(Tree::Leaf(8)),
+          right: Box::new(Tree::Leaf(5)),
+        }),
+      },
     ),
   ];
   for testcase in testcases {
@@ -96,7 +107,7 @@ fn test_parse_simple_input() {
     let expected = testcase.1;
     match parse_tree(input) {
       Ok(tree) => {
-        let result = trees_eq(tree.root(), expected.root());
+        let result = tree == expected;
         if !result {
           println!("{}, {:?} <--> {:?}", input, tree, expected);
         }
@@ -110,5 +121,3 @@ fn test_parse_simple_input() {
 pub fn parse_input(input: &str) -> Result<Vec<SnailfishNumber>, &'static str> {
   input.lines().map(|line| parse_tree(line)).collect()
 }
-
-*/

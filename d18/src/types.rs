@@ -1,8 +1,4 @@
-pub type LeafValue = u32;
-pub type NodeValue = Option<LeafValue>;
-/*
-pub type SnailfishNumber = Tree<NodeValue>;
+use crate::trees::Tree;
 
-pub type SnailfishNumberPart<'a> = NodeRef<'a, NodeValue>;
-pub type SnailfishNumberPartMut<'a> = NodeMut<'a, NodeValue>;
-*/
+pub type LeafValue = u32;
+pub type SnailfishNumber = Tree<LeafValue>;

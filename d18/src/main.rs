@@ -10,7 +10,7 @@
 // Need to parse string into a tree
 
 mod parser;
-mod sliding_window;
+mod trees;
 mod types;
 
 use crate::parser::*;
