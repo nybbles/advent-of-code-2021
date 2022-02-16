@@ -16,9 +16,11 @@ mod types;
 use crate::parser::*;
 use crate::types::*;
 
-/*
 fn snailfish_add(left: SnailfishNumber, right: SnailfishNumber) -> SnailfishNumber {
-
+    SnailfishNumber::NonLeaf {
+        left: Box::new(left),
+        right: Box::new(right),
+    }
 }
 
 #[test]
@@ -26,10 +28,9 @@ fn test_snailfish_add() {
     let tree0 = parse_tree("1").unwrap();
     let tree1 = parse_tree("[2,3]").unwrap();
     let result = snailfish_add(tree0, tree1);
-    let expected = tr(None) / tr(Some(1)) / (tr(None) / tr(Some(2)) / tr(Some(3)));
-    assert!(trees_eq(result.root(), expected.root()))
+    let expected = parse_tree("[1,[2,3]]").unwrap();
+    assert!(result == expected)
 }
-*/
 
 enum ReduceAction {
     Explode,
