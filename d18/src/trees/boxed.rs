@@ -1,4 +1,9 @@
-pub type SubtreeBox<T> = Box<Tree<T>>
+pub mod parser;
+
+use crate::trees::TreeBuilder;
+use std::mem;
+
+pub type SubtreeBox<T> = Box<Tree<T>>;
 
 #[derive(Debug)]
 pub enum Tree<T> {
@@ -6,6 +11,23 @@ pub enum Tree<T> {
   NonLeaf {
     left: SubtreeBox<T>,
     right: SubtreeBox<T>,
+  },
+}
+
+impl<U: Default> TreeBuilder<U> for Tree<U> {
+  type Tree = Tree<U>;
+
+  fn leaf(value: U) -> Tree<U> {
+    Tree::Leaf(value)
+  }
+  fn non_leaf(left: Tree<U>, right: Tree<U>) -> Tree<U> {
+    Tree::NonLeaf {
+      left: Box::new(left),
+      right: Box::new(right),
+    }
+  }
+  fn get_tree(&mut self) -> Tree<U> {
+    mem::take(self)
   }
 }
 
