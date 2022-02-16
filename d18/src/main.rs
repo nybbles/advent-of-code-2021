@@ -21,10 +21,10 @@ fn snailfish_add(left: SnailfishNumber, right: SnailfishNumber) -> SnailfishNumb
 
 #[test]
 fn test_snailfish_add() {
-    let tree0 = parse_tree("1").unwrap();
-    let tree1 = parse_tree("[2,3]").unwrap();
+    let tree0 = parse_tree::<SnailfishNumber>("1").unwrap();
+    let tree1 = parse_tree::<SnailfishNumber>("[2,3]").unwrap();
     let result = snailfish_add(tree0, tree1);
-    let expected = parse_tree("[1,[2,3]]").unwrap();
+    let expected = parse_tree::<SnailfishNumber>("[1,[2,3]]").unwrap();
     assert!(result == expected)
 }
 

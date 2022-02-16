@@ -1,8 +1,10 @@
 pub mod iter;
 pub mod parser;
 
+use crate::trees::TreeBuilder;
 use iter::TreeIter;
 use std::cell::RefCell;
+use std::mem;
 use std::rc::Rc;
 
 pub type SubtreeRef<T> = Rc<RefCell<Tree<T>>>;
@@ -14,6 +16,20 @@ pub enum Tree<T> {
     left: SubtreeRef<T>,
     right: SubtreeRef<T>,
   },
+}
+
+impl<U: Default> TreeBuilder<U> for Tree<U> {
+  type Tree = Tree<U>;
+
+  fn leaf(value: U) -> Tree<U> {
+    Tree::Leaf(value)
+  }
+  fn non_leaf(left: Tree<U>, right: Tree<U>) -> Tree<U> {
+    Tree::new_non_leaf(left, right)
+  }
+  fn get_tree(&mut self) -> Tree<U> {
+    mem::take(self)
+  }
 }
 
 impl<T: Default> Default for Tree<T> {

@@ -80,17 +80,20 @@ impl<'a, T> Iterator for TreeIter<T> {
 #[test]
 fn test_tree_iter() {
   use crate::trees::refcell::parser::parse_tree;
+  use crate::types::LeafValue;
 
   let mut expected_subtrees = vec!["[[1,9],[8,5]]", "[1,9]", "1", "9", "[8,5]", "8", "5"];
   expected_subtrees.reverse();
   let mut expected_depths = vec![0, 1, 2, 2, 1, 2, 2];
   expected_depths.reverse();
 
-  let tree = Rc::new(RefCell::new(parse_tree("[[1,9],[8,5]]").unwrap()));
+  let tree = Rc::new(RefCell::new(
+    parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap(),
+  ));
   let mut tree_iter = Tree::iter(tree);
 
   while let Some(subtree) = tree_iter.next() {
-    let expected_subtree = parse_tree(expected_subtrees.pop().unwrap()).unwrap();
+    let expected_subtree = parse_tree::<Tree<LeafValue>>(expected_subtrees.pop().unwrap()).unwrap();
     let expected_depth = expected_depths.pop().unwrap();
     let depth = tree_iter.get_curr_depth();
     assert_eq!(expected_depth, depth);
@@ -102,8 +105,11 @@ fn test_tree_iter() {
 #[test]
 fn test_tree_iter_with_mutable_borrows() {
   use crate::trees::refcell::parser::parse_tree;
+  use crate::types::LeafValue;
 
-  let tree = Rc::new(RefCell::new(parse_tree("[[1,9],[8,5]]").unwrap()));
+  let tree = Rc::new(RefCell::new(
+    parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap(),
+  ));
   let mut tree_iter = Tree::iter(tree);
 
   let root = tree_iter.next().unwrap();
