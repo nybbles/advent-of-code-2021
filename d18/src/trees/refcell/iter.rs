@@ -1,4 +1,4 @@
-use crate::trees::{SubtreeRef, Tree};
+use crate::trees::refcell::{SubtreeRef, Tree};
 
 use std::cell::RefCell;
 use std::mem;
@@ -79,8 +79,7 @@ impl<'a, T> Iterator for TreeIter<T> {
 
 #[test]
 fn test_tree_iter() {
-  use crate::parser::parse_tree;
-  use crate::types::SnailfishNumber;
+  use crate::trees::refcell::parser::parse_tree;
 
   let mut expected_subtrees = vec!["[[1,9],[8,5]]", "[1,9]", "1", "9", "[8,5]", "8", "5"];
   expected_subtrees.reverse();
@@ -102,7 +101,7 @@ fn test_tree_iter() {
 
 #[test]
 fn test_tree_iter_with_mutable_borrows() {
-  use crate::parser::parse_tree;
+  use crate::trees::refcell::parser::parse_tree;
 
   let tree = Rc::new(RefCell::new(parse_tree("[[1,9],[8,5]]").unwrap()));
   let mut tree_iter = Tree::iter(tree);

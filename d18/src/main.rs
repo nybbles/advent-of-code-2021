@@ -9,11 +9,10 @@
 
 // Need to parse string into a tree
 
-mod parser;
 mod trees;
 mod types;
 
-use crate::parser::*;
+use crate::trees::refcell::parser::parse_tree;
 use crate::types::*;
 
 fn snailfish_add(left: SnailfishNumber, right: SnailfishNumber) -> SnailfishNumber {
