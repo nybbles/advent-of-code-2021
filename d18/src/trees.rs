@@ -1,4 +1,5 @@
-// https://discord.com/channels/442252698964721669/443150878111694848/943216605066846268
+// this one has an example of a mutable iterator:
+// https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=985c685d5809121fc93c3bdeb64fa755
 
 use std::mem;
 
@@ -42,10 +43,22 @@ impl<T> Tree<T> {
   }
 }
 
+// Modify to return depth, then use a while let loop to iterate over this
+// iterator:
+// https://doc.rust-lang.org/rust-by-example/flow_control/while_let.html.
+// Then store left leaf's parent and right leaf's parent in a local variable. If
+// the condition is met, then all of the required data is available.
+// Modify to be a mutable iterator.
 struct WithDepthIter<'a, T> {
   curr_depth: usize,
   next_visit: Vec<&'a Tree<T>>,
   parent: Option<Box<WithDepthIter<'a, T>>>,
+}
+
+impl<T> WithDepthIter<'_, T> {
+  fn get_curr_depth(&self) -> usize {
+    self.curr_depth
+  }
 }
 
 impl<T> Default for WithDepthIter<'_, T> {
