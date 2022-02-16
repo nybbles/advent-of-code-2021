@@ -34,45 +34,48 @@ impl<T: PartialEq> PartialEq for Tree<T> {
 }
 
 impl<T> Tree<T> {
-  fn with_depth_iter(&self) -> WithDepthIter<'_, T> {
-    WithDepthIter {
+  fn iter(&self) -> TreeIter<'_, T> {
+    TreeIter {
       curr_depth: 0,
+      next_depth: 0,
       next_visit: vec![self],
       parent: None,
     }
   }
 }
 
-// Modify to return depth, then use a while let loop to iterate over this
-// iterator:
+// Modify to return depth, change to regular iterator, then use a while let loop
+// to iterate over this iterator:
 // https://doc.rust-lang.org/rust-by-example/flow_control/while_let.html.
 // Then store left leaf's parent and right leaf's parent in a local variable. If
 // the condition is met, then all of the required data is available.
 // Modify to be a mutable iterator.
-struct WithDepthIter<'a, T> {
+struct TreeIter<'a, T> {
   curr_depth: usize,
+  next_depth: usize,
   next_visit: Vec<&'a Tree<T>>,
-  parent: Option<Box<WithDepthIter<'a, T>>>,
+  parent: Option<Box<TreeIter<'a, T>>>,
 }
 
-impl<T> WithDepthIter<'_, T> {
+impl<T> TreeIter<'_, T> {
   fn get_curr_depth(&self) -> usize {
     self.curr_depth
   }
 }
 
-impl<T> Default for WithDepthIter<'_, T> {
+impl<T> Default for TreeIter<'_, T> {
   fn default() -> Self {
-    WithDepthIter {
+    TreeIter {
       curr_depth: 0,
+      next_depth: 0,
       next_visit: vec![],
       parent: None,
     }
   }
 }
 
-impl<'a, T> Iterator for WithDepthIter<'a, T> {
-  type Item = (usize, &'a Tree<T>);
+impl<'a, T> Iterator for TreeIter<'a, T> {
+  type Item = &'a Tree<T>;
 
   fn next(&mut self) -> Option<Self::Item> {
     if self.next_visit.len() > 2 {
@@ -82,22 +85,26 @@ impl<'a, T> Iterator for WithDepthIter<'a, T> {
     match self.next_visit.pop() {
       // subtree found, visit subtree
       Some(subtree) => {
+        self.curr_depth = self.next_depth;
+
         // advance iterator
-        let curr_depth = self.curr_depth;
+        // TODO: This is wrong.. because it is not used. It means that curr_depth is not correct.
+        // let curr_depth = self.curr_depth;
         match subtree {
           Tree::Leaf(_) => (), // do nothing, nothing to recurse into
           Tree::NonLeaf {
             left: left_subtree,
             right: right_subtree,
           } => {
-            *self = WithDepthIter {
-              curr_depth: self.curr_depth + 1,
+            *self = TreeIter {
+              curr_depth: self.curr_depth,
+              next_depth: self.curr_depth + 1,
               next_visit: vec![right_subtree, left_subtree],
               parent: Some(Box::new(mem::take(self))),
             }
           }
         }
-        Some((curr_depth, subtree))
+        Some(subtree)
       }
 
       // all subtrees visited, pop back up
@@ -108,14 +115,17 @@ impl<'a, T> Iterator for WithDepthIter<'a, T> {
           self.next()
         }
         // back at the root, so finish iterating
-        None => None,
+        None => {
+          self.curr_depth = 0;
+          None
+        }
       },
     }
   }
 }
 
 #[test]
-fn test_with_depth_iterator() {
+fn test_tree_iter() {
   use crate::parser::parse_tree;
   use crate::types::SnailfishNumber;
 
@@ -125,14 +135,19 @@ fn test_with_depth_iterator() {
   expected_depths.reverse();
 
   let tree: SnailfishNumber = parse_tree("[[1,9],[8,5]]").unwrap();
-  for (depth, subtree) in tree.with_depth_iter() {
+  let mut tree_iter = tree.iter();
+  while let Some(subtree) = tree_iter.next() {
     let expected_subtree: SnailfishNumber = parse_tree(expected_subtrees.pop().unwrap()).unwrap();
     let expected_depth = expected_depths.pop().unwrap();
-
+    let depth = tree_iter.get_curr_depth();
     assert_eq!(expected_depth, depth);
     assert_eq!(&expected_subtree, subtree);
     println!("{:?} -> {:?}", depth, subtree);
   }
+  assert_eq!(tree_iter.get_curr_depth(), 0);
 }
 
-// trait WindowedIterator
+#[test]
+fn test_mut_iter() {
+  unimplemented!();
+}
