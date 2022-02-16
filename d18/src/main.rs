@@ -17,10 +17,7 @@ use crate::parser::*;
 use crate::types::*;
 
 fn snailfish_add(left: SnailfishNumber, right: SnailfishNumber) -> SnailfishNumber {
-    SnailfishNumber::NonLeaf {
-        left: Box::new(left),
-        right: Box::new(right),
-    }
+    SnailfishNumber::new_non_leaf(left, right)
 }
 
 #[test]

@@ -36,10 +36,7 @@ fn subtree(input: &str) -> IResult<&str, SnailfishNumber> {
   .map(|(remainder, (left_subtree, right_subtree))| {
     (
       remainder,
-      Tree::NonLeaf {
-        left: Box::new(left_subtree),
-        right: Box::new(right_subtree),
-      },
+      SnailfishNumber::new_non_leaf(left_subtree, right_subtree),
     )
   })
 }
@@ -63,43 +60,28 @@ fn test_parse_simple_input() {
     ("1", Tree::Leaf(1)),
     (
       "[1,2]",
-      Tree::NonLeaf {
-        left: Box::new(Tree::Leaf(1)),
-        right: Box::new(Tree::Leaf(2)),
-      },
+      SnailfishNumber::new_non_leaf(Tree::Leaf(1), Tree::Leaf(2)),
     ),
     (
       "[[1,2],3]",
-      Tree::NonLeaf {
-        left: Box::new(Tree::NonLeaf {
-          left: Box::new(Tree::Leaf(1)),
-          right: Box::new(Tree::Leaf(2)),
-        }),
-        right: Box::new(Tree::Leaf(3)),
-      },
+      SnailfishNumber::new_non_leaf(
+        SnailfishNumber::new_non_leaf(Tree::Leaf(1), Tree::Leaf(2)),
+        Tree::Leaf(3),
+      ),
     ),
     (
       "[9,[8,7]]",
-      Tree::NonLeaf {
-        left: Box::new(Tree::Leaf(9)),
-        right: Box::new(Tree::NonLeaf {
-          left: Box::new(Tree::Leaf(8)),
-          right: Box::new(Tree::Leaf(7)),
-        }),
-      },
+      SnailfishNumber::new_non_leaf(
+        Tree::Leaf(9),
+        SnailfishNumber::new_non_leaf(Tree::Leaf(8), Tree::Leaf(7)),
+      ),
     ),
     (
       "[[1,9],[8,5]]",
-      Tree::NonLeaf {
-        left: Box::new(Tree::NonLeaf {
-          left: Box::new(Tree::Leaf(1)),
-          right: Box::new(Tree::Leaf(9)),
-        }),
-        right: Box::new(Tree::NonLeaf {
-          left: Box::new(Tree::Leaf(8)),
-          right: Box::new(Tree::Leaf(5)),
-        }),
-      },
+      SnailfishNumber::new_non_leaf(
+        SnailfishNumber::new_non_leaf(Tree::Leaf(1), Tree::Leaf(9)),
+        SnailfishNumber::new_non_leaf(Tree::Leaf(8), Tree::Leaf(5)),
+      ),
     ),
   ];
   for testcase in testcases {
