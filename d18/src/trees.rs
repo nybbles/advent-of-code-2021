@@ -159,3 +159,54 @@ fn test_tree_iter() {
   }
   assert_eq!(tree_iter.get_curr_depth(), 0);
 }
+
+#[test]
+fn test_tree_iter_with_mutable_borrows() {
+  use crate::parser::parse_tree;
+  use crate::types::SnailfishNumber;
+
+  let tree = Rc::new(RefCell::new(parse_tree("[[1,9],[8,5]]").unwrap()));
+  let mut tree_iter = Tree::iter(tree);
+
+  let root = tree_iter.next().unwrap();
+  let subtree = tree_iter.next().unwrap();
+
+  println!("Step 0");
+  println!("{:?}", root.borrow());
+  println!("{:?}", subtree.borrow());
+
+  {
+    let mut borrowed_root = root.borrow_mut();
+    let mut borrowed_subtree = subtree.borrow_mut();
+
+    println!("Step 1");
+    println!("{:?}", borrowed_root);
+    println!("{:?}", borrowed_subtree);
+
+    if let Tree::NonLeaf {
+      ref left,
+      ref right,
+    } = &*borrowed_root
+    {
+      println!("WTF");
+      println!("{:?}", right.borrow());
+      println!("FTW");
+    } else {
+      assert!(false);
+    }
+
+    if let Tree::NonLeaf { ref mut left, .. } = &mut *borrowed_subtree {
+      *left = SubtreeRef::new(RefCell::new(Tree::Leaf(30)));
+    } else {
+      assert!(false);
+    }
+
+    println!("Step 2");
+    println!("{:?}", borrowed_root);
+    println!("{:?}", borrowed_subtree);
+  }
+
+  println!("Step 3");
+  println!("{:?}", root.borrow());
+  println!("{:?}", subtree.borrow());
+}
