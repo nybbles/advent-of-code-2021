@@ -9,7 +9,7 @@ use std::ops::ControlFlow;
 // set to None when the Zipper is moved down. The next Zipper takes ownership of
 // the subtree it is focusing on.
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum ZipperDirection {
   Left,
   Right,
@@ -32,6 +32,35 @@ enum Zipper<T> {
 impl<T: Default> Default for Zipper<T> {
   fn default() -> Self {
     Zipper::Tombstone
+  }
+}
+
+impl<T: PartialEq> PartialEq for Zipper<T> {
+  fn eq(&self, other: &Zipper<T>) -> bool {
+    match (self, other) {
+      (Zipper::Tombstone, Zipper::Tombstone) => true,
+      (Zipper::Top { tree: tree }, Zipper::Top { tree: other_tree }) => tree == other_tree,
+      (
+        Zipper::Down {
+          direction,
+          focused_subtree,
+          ignored_subtree,
+          parent,
+        },
+        Zipper::Down {
+          direction: other_direction,
+          focused_subtree: other_focused_subtree,
+          ignored_subtree: other_ignored_subtree,
+          parent: other_parent,
+        },
+      ) => {
+        direction == other_direction
+          && focused_subtree == other_focused_subtree
+          && ignored_subtree == other_ignored_subtree
+          && parent == other_parent
+      }
+      _ => false,
+    }
   }
 }
 
@@ -83,23 +112,28 @@ impl<T: Default> Zipper<T> {
           }
         }
       }
-
-      Zipper::Top { tree } => match tree.take().unwrap() {
-        Tree::Leaf(_) => ControlFlow::Break(()),
-        Tree::NonLeaf { left, right } => {
-          let (ignored_subtree, focused_subtree) = match direction {
-            ZipperDirection::Left => (*right, Some(*left)),
-            ZipperDirection::Right => (*left, Some(*right)),
-          };
-          *self = Zipper::Down {
-            parent: Box::new(mem::take(self)),
-            direction: direction,
-            ignored_subtree: ignored_subtree,
-            focused_subtree: focused_subtree,
-          };
-          ControlFlow::Continue(())
+      Zipper::Top { tree } => {
+        let tree_val = tree.take().unwrap();
+        match tree_val {
+          Tree::Leaf(_) => {
+            tree.replace(tree_val);
+            ControlFlow::Break(())
+          }
+          Tree::NonLeaf { left, right } => {
+            let (ignored_subtree, focused_subtree) = match direction {
+              ZipperDirection::Left => (*right, Some(*left)),
+              ZipperDirection::Right => (*left, Some(*right)),
+            };
+            *self = Zipper::Down {
+              parent: Box::new(mem::take(self)),
+              direction: direction,
+              ignored_subtree: ignored_subtree,
+              focused_subtree: focused_subtree,
+            };
+            ControlFlow::Continue(())
+          }
         }
-      },
+      }
     }
   }
 
@@ -131,7 +165,6 @@ impl<T: Default> Zipper<T> {
             ZipperDirection::Right => (mem::take(ignored_subtree), focused_subtree.take().unwrap()),
           };
           Tree::NonLeaf {
-            // directon needs to go here
             left: Box::new(left),
             right: Box::new(right),
           }
@@ -231,4 +264,33 @@ fn test_tree_zipper_right() {
   let result = zipper.right();
   assert_eq!(result, ControlFlow::Break(()));
   println!("{:?}", zipper.focused_subtree());
+}
+
+#[cfg(test)]
+mod test {
+  #[test]
+  fn test_leaf_not_modified_by_zipper_down() {
+    use super::ControlFlow;
+    use super::Tree;
+    use super::Zipper;
+    use crate::trees::boxed::parser::parse_tree;
+    use crate::types::LeafValue;
+
+    let tree = parse_tree::<Tree<LeafValue>>("1").unwrap();
+
+    let mut zipper = Zipper::new(tree);
+    let expected_zipper = Zipper::Top {
+      tree: Some(parse_tree::<Tree<LeafValue>>("1").unwrap()),
+    };
+
+    assert_eq!(zipper, expected_zipper);
+
+    println!("{:?}", zipper.focused_subtree());
+    let result = zipper.left();
+    assert_eq!(result, ControlFlow::Break(()));
+
+    assert_eq!(zipper, expected_zipper);
+
+    println!("{:?}", zipper.focused_subtree());
+  }
 }
