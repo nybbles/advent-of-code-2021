@@ -27,6 +27,7 @@ enum Zipper<T> {
     tree: Option<Tree<T>>,
   },
   Tombstone,
+  Emptied,
 }
 
 impl<T: Default> Default for Zipper<T> {
@@ -39,6 +40,7 @@ impl<T: PartialEq> PartialEq for Zipper<T> {
   fn eq(&self, other: &Zipper<T>) -> bool {
     match (self, other) {
       (Zipper::Tombstone, Zipper::Tombstone) => true,
+      (Zipper::Emptied, Zipper::Emptied) => true,
       (Zipper::Top { tree: tree }, Zipper::Top { tree: other_tree }) => tree == other_tree,
       (
         Zipper::Down {
@@ -71,7 +73,7 @@ impl<T: Default> Zipper<T> {
 
   pub fn focused_subtree(&self) -> &Tree<T> {
     let treeopt = match self {
-      Zipper::Tombstone => panic!("Logic error"),
+      Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
       Zipper::Top { ref tree } => tree,
       Zipper::Down {
         ref focused_subtree,
@@ -87,7 +89,7 @@ impl<T: Default> Zipper<T> {
 
   pub fn down(&mut self, direction: ZipperDirection) -> ControlFlow<()> {
     match self {
-      Zipper::Tombstone => panic!("Logic error"),
+      Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
       Zipper::Down {
         focused_subtree, ..
       } => {
@@ -147,7 +149,7 @@ impl<T: Default> Zipper<T> {
 
   pub fn up(&mut self) -> ControlFlow<()> {
     match self {
-      Zipper::Tombstone => panic!("Logic error"),
+      Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
       Zipper::Top { .. } => ControlFlow::Break(()),
       Zipper::Down {
         parent,
@@ -172,7 +174,7 @@ impl<T: Default> Zipper<T> {
 
         let zipper = mem::take(parent);
         match *zipper {
-          Zipper::Tombstone => panic!("Logic error"),
+          Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
           Zipper::Top { .. } => {
             *self = Zipper::Top {
               tree: Some(new_focused_subtree),
@@ -202,7 +204,7 @@ impl<T: Default> Zipper<T> {
   // returns the tree being replaced
   pub fn attach(&mut self, new_tree: Tree<T>) -> Tree<T> {
     match self {
-      Zipper::Tombstone => panic!("Logic error"),
+      Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
       Zipper::Top { tree }
       | Zipper::Down {
         focused_subtree: tree,
@@ -214,12 +216,19 @@ impl<T: Default> Zipper<T> {
     }
   }
 
-  /*
-  pub fn to_tree(&self) -> Tree<T> {
+  pub fn to_tree(&mut self) -> Tree<T> {
     // gives ownership of the tree back to the caller
+    while self.up() != ControlFlow::Break(()) {}
 
+    let tree = match self {
+      Zipper::Tombstone | Zipper::Emptied | Zipper::Down { .. } => panic!("Logic error"),
+      Zipper::Top { tree } => tree.take().unwrap(),
+    };
+
+    *self = Zipper::Emptied;
+
+    tree
   }
-  */
 }
 
 #[test]
@@ -328,6 +337,20 @@ mod test {
 
     zipper.up();
     zipper.up();
+
+    zipper.right();
+    zipper.right();
     println!("{:?}", zipper.focused_subtree());
+
+    zipper.attach(parse_tree::<Tree<LeafValue>>("[1,2]").unwrap());
+    println!("{:?}", zipper.focused_subtree());
+
+    let modified_tree = zipper.to_tree();
+    assert_eq!(zipper, Zipper::Emptied);
+    assert_eq!(
+      modified_tree,
+      parse_tree::<Tree<LeafValue>>("[[[4,7],9],[8,[1,2]]]").unwrap()
+    );
+    println!("{:?}", modified_tree);
   }
 }
