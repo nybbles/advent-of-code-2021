@@ -15,7 +15,7 @@ enum ZipperDirection {
   Right,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Zipper<T> {
   Down {
     parent: Box<Zipper<T>>,
@@ -33,36 +33,6 @@ enum Zipper<T> {
 impl<T: Default> Default for Zipper<T> {
   fn default() -> Self {
     Zipper::Tombstone
-  }
-}
-
-impl<T: PartialEq> PartialEq for Zipper<T> {
-  fn eq(&self, other: &Zipper<T>) -> bool {
-    match (self, other) {
-      (Zipper::Tombstone, Zipper::Tombstone) => true,
-      (Zipper::Emptied, Zipper::Emptied) => true,
-      (Zipper::Top { tree: tree }, Zipper::Top { tree: other_tree }) => tree == other_tree,
-      (
-        Zipper::Down {
-          direction,
-          focused_subtree,
-          ignored_subtree,
-          parent,
-        },
-        Zipper::Down {
-          direction: other_direction,
-          focused_subtree: other_focused_subtree,
-          ignored_subtree: other_ignored_subtree,
-          parent: other_parent,
-        },
-      ) => {
-        direction == other_direction
-          && focused_subtree == other_focused_subtree
-          && ignored_subtree == other_ignored_subtree
-          && parent == other_parent
-      }
-      _ => false,
-    }
   }
 }
 
