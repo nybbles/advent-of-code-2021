@@ -199,10 +199,24 @@ impl<T: Default> Zipper<T> {
     }
   }
 
-  /*
-  pub fn attach(&self, Tree<T>) -> Tree<T> {}
+  // returns the tree being replaced
+  pub fn attach(&mut self, new_tree: Tree<T>) -> Tree<T> {
+    match self {
+      Zipper::Tombstone => panic!("Logic error"),
+      Zipper::Top { tree }
+      | Zipper::Down {
+        focused_subtree: tree,
+        ..
+      } => {
+        let old_tree = tree.replace(new_tree);
+        old_tree.unwrap()
+      }
+    }
+  }
 
+  /*
   pub fn to_tree(&self) -> Tree<T> {
+    // gives ownership of the tree back to the caller
 
   }
   */
@@ -291,6 +305,29 @@ mod test {
 
     assert_eq!(zipper, expected_zipper);
 
+    println!("{:?}", zipper.focused_subtree());
+  }
+
+  #[test]
+  fn test_zipper_attach() {
+    use super::Tree;
+    use super::Zipper;
+    use crate::trees::boxed::parser::parse_tree;
+    use crate::types::LeafValue;
+
+    let tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
+    let mut zipper = Zipper::new(tree);
+    println!("{:?}", zipper.focused_subtree());
+
+    zipper.left();
+    zipper.left();
+    println!("{:?}", zipper.focused_subtree());
+
+    zipper.attach(parse_tree::<Tree<LeafValue>>("[4,7]").unwrap());
+    println!("{:?}", zipper.focused_subtree());
+
+    zipper.up();
+    zipper.up();
     println!("{:?}", zipper.focused_subtree());
   }
 }
