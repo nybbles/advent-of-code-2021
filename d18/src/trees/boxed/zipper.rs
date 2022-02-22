@@ -208,8 +208,15 @@ enum ZipperDFSTraversalDirection {
   Right,
 }
 
+#[derive(PartialEq)]
+enum ZipperDFSTraversalIterDirection {
+  Forward,
+  Backward,
+}
+
 struct ZipperDFSTraversal<T> {
   next_direction: ZipperDFSTraversalDirection,
+  iter_direction: ZipperDFSTraversalIterDirection,
   zipper: Zipper<T>,
 }
 
@@ -217,11 +224,21 @@ impl<T: Default> ZipperDFSTraversal<T> {
   pub fn new(zipper: Zipper<T>) -> ZipperDFSTraversal<T> {
     ZipperDFSTraversal {
       next_direction: ZipperDFSTraversalDirection::Left,
+      iter_direction: ZipperDFSTraversalIterDirection::Forward,
       zipper: zipper,
     }
   }
 
   pub fn next(&mut self) -> ControlFlow<()> {
+    if self.iter_direction != ZipperDFSTraversalIterDirection::Forward {
+      self.next_direction = match self.next_direction {
+        ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Up,
+        ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Right,
+        ZipperDFSTraversalDirection::Up => ZipperDFSTraversalDirection::Left,
+      };
+      self.iter_direction = ZipperDFSTraversalIterDirection::Forward;
+    }
+
     match self.next_direction {
       ZipperDFSTraversalDirection::Left => match self.zipper.left() {
         ControlFlow::Break(()) => {
@@ -241,7 +258,10 @@ impl<T: Default> ZipperDFSTraversal<T> {
         }
       },
       ZipperDFSTraversalDirection::Up => match self.zipper.up() {
-        ControlFlow::Break(()) => ControlFlow::Break(()),
+        ControlFlow::Break(()) => {
+          self.next_direction = ZipperDFSTraversalDirection::Left;
+          ControlFlow::Break(())
+        }
         ControlFlow::Continue(direction) => {
           match direction {
             ZipperDirection::Left => {
@@ -257,13 +277,160 @@ impl<T: Default> ZipperDFSTraversal<T> {
     }
   }
 
-  pub fn prev(&mut self) {}
+  // What happens when next and prev are called on the same DFS traversal? Does
+  // next_direction make sense?
+  pub fn prev(&mut self) -> ControlFlow<()> {
+    if self.iter_direction != ZipperDFSTraversalIterDirection::Backward {
+      self.next_direction = match self.next_direction {
+        ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Up,
+        ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Left,
+        ZipperDFSTraversalDirection::Up => ZipperDFSTraversalDirection::Right,
+      };
+      self.iter_direction = ZipperDFSTraversalIterDirection::Backward;
+    }
+
+    match self.next_direction {
+      ZipperDFSTraversalDirection::Right => match self.zipper.right() {
+        ControlFlow::Break(()) => {
+          self.next_direction = ZipperDFSTraversalDirection::Up;
+          self.next()
+        }
+        ControlFlow::Continue(()) => ControlFlow::Continue(()),
+      },
+      ZipperDFSTraversalDirection::Left => match self.zipper.left() {
+        ControlFlow::Break(()) => {
+          self.next_direction = ZipperDFSTraversalDirection::Up;
+          self.next()
+        }
+        ControlFlow::Continue(()) => {
+          self.next_direction = ZipperDFSTraversalDirection::Right;
+          ControlFlow::Continue(())
+        }
+      },
+      ZipperDFSTraversalDirection::Up => match self.zipper.up() {
+        ControlFlow::Break(()) => {
+          self.next_direction = ZipperDFSTraversalDirection::Right;
+          ControlFlow::Break(())
+        }
+        ControlFlow::Continue(direction) => {
+          match direction {
+            ZipperDirection::Right => {
+              self.next_direction = ZipperDFSTraversalDirection::Left;
+            }
+            ZipperDirection::Left => {
+              self.next_direction = ZipperDFSTraversalDirection::Up;
+            }
+          }
+          ControlFlow::Continue(())
+        }
+      },
+    }
+  }
 
   /*
   pub fn take_zipper(&mut self) -> Zipper<T> {}
 
   pub fn put_zipper(&mut self, &mut zipper: Zipper) {}
   */
+}
+
+#[test]
+fn test_zipper_dfs_traversal_backward() {
+  use crate::trees::boxed::parser::parse_tree;
+  use crate::types::LeafValue;
+
+  let tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
+  let mut zipper = Zipper::new(tree);
+  let mut zipper_dfs_traversal = ZipperDFSTraversal::new(zipper);
+
+  let other_tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
+  let mut other_zipper = Zipper::new(other_tree);
+
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.left();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.left();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.up();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.right();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.up();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.up();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.right();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.left();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.up();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.right();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.up();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+
+  zipper_dfs_traversal.next();
+  other_zipper.up();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
+  zipper_dfs_traversal.next();
+  zipper_dfs_traversal.prev();
+  assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
 }
 
 #[test]
@@ -339,31 +506,23 @@ fn test_tree_zipper_left() {
   let tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
   let mut zipper = Zipper::new(tree);
 
-  println!("{:?}", zipper.focused_subtree());
+  let result = zipper.left();
+  assert_eq!(result, ControlFlow::Continue(()));
 
   let result = zipper.left();
   assert_eq!(result, ControlFlow::Continue(()));
-  println!("{:?}", zipper.focused_subtree());
-
-  let result = zipper.left();
-  assert_eq!(result, ControlFlow::Continue(()));
-  println!("{:?}", zipper.focused_subtree());
 
   let result = zipper.left();
   assert_eq!(result, ControlFlow::Break(()));
-  println!("{:?}", zipper.focused_subtree());
 
   let result = zipper.up();
   assert_eq!(result, ControlFlow::Continue(ZipperDirection::Left));
-  println!("{:?}", zipper.focused_subtree());
 
   let result = zipper.up();
   assert_eq!(result, ControlFlow::Continue(ZipperDirection::Left));
-  println!("{:?}", zipper.focused_subtree());
 
   let result = zipper.up();
   assert_eq!(result, ControlFlow::Break(()));
-  println!("{:?}", zipper.focused_subtree());
 }
 
 #[test]
@@ -374,19 +533,14 @@ fn test_tree_zipper_right() {
   let tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
   let mut zipper = Zipper::new(tree);
 
-  println!("{:?}", zipper.focused_subtree());
+  let result = zipper.right();
+  assert_eq!(result, ControlFlow::Continue(()));
 
   let result = zipper.right();
   assert_eq!(result, ControlFlow::Continue(()));
-  println!("{:?}", zipper.focused_subtree());
-
-  let result = zipper.right();
-  assert_eq!(result, ControlFlow::Continue(()));
-  println!("{:?}", zipper.focused_subtree());
 
   let result = zipper.right();
   assert_eq!(result, ControlFlow::Break(()));
-  println!("{:?}", zipper.focused_subtree());
 }
 
 #[cfg(test)]
@@ -408,13 +562,10 @@ mod test {
 
     assert_eq!(zipper, expected_zipper);
 
-    println!("{:?}", zipper.focused_subtree());
     let result = zipper.left();
     assert_eq!(result, ControlFlow::Break(()));
 
     assert_eq!(zipper, expected_zipper);
-
-    println!("{:?}", zipper.focused_subtree());
   }
 
   #[test]
@@ -426,24 +577,19 @@ mod test {
 
     let tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
     let mut zipper = Zipper::new(tree);
-    println!("{:?}", zipper.focused_subtree());
 
     zipper.left();
     zipper.left();
-    println!("{:?}", zipper.focused_subtree());
 
     zipper.attach(parse_tree::<Tree<LeafValue>>("[4,7]").unwrap());
-    println!("{:?}", zipper.focused_subtree());
 
     zipper.up();
     zipper.up();
 
     zipper.right();
     zipper.right();
-    println!("{:?}", zipper.focused_subtree());
 
     zipper.attach(parse_tree::<Tree<LeafValue>>("[1,2]").unwrap());
-    println!("{:?}", zipper.focused_subtree());
 
     let modified_tree = zipper.to_tree();
     assert_eq!(zipper, Zipper::Emptied);
@@ -451,6 +597,5 @@ mod test {
       modified_tree,
       parse_tree::<Tree<LeafValue>>("[[[4,7],9],[8,[1,2]]]").unwrap()
     );
-    println!("{:?}", modified_tree);
   }
 }
