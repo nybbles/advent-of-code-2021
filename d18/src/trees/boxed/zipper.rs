@@ -16,8 +16,9 @@ enum ZipperDirection {
 }
 
 #[derive(Debug, PartialEq)]
-enum Zipper<T> {
+pub enum Zipper<T> {
   Down {
+    depth: usize,
     parent: Box<Zipper<T>>,
     direction: ZipperDirection,
     focused_subtree: Option<Tree<T>>,
@@ -41,6 +42,14 @@ impl<T: Default> Zipper<T> {
     Zipper::Top { tree: Some(tree) }
   }
 
+  pub fn get_depth(&self) -> usize {
+    match self {
+      Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
+      Zipper::Top { .. } => 0,
+      Zipper::Down { depth, .. } => *depth,
+    }
+  }
+
   pub fn focused_subtree(&self) -> &Tree<T> {
     let treeopt = match self {
       Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
@@ -61,7 +70,9 @@ impl<T: Default> Zipper<T> {
     match self {
       Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
       Zipper::Down {
-        focused_subtree, ..
+        depth,
+        focused_subtree,
+        ..
       } => {
         let focused_subtree_val = focused_subtree.take().unwrap();
         match focused_subtree_val {
@@ -75,6 +86,7 @@ impl<T: Default> Zipper<T> {
               ZipperDirection::Right => (*left, Some(*right)),
             };
             *self = Zipper::Down {
+              depth: *depth + 1,
               parent: Box::new(mem::take(self)),
               ignored_subtree: ignored_subtree,
               focused_subtree: focused_subtree,
@@ -97,6 +109,7 @@ impl<T: Default> Zipper<T> {
               ZipperDirection::Right => (*left, Some(*right)),
             };
             *self = Zipper::Down {
+              depth: 1,
               parent: Box::new(mem::take(self)),
               direction: direction,
               ignored_subtree: ignored_subtree,
@@ -122,6 +135,7 @@ impl<T: Default> Zipper<T> {
       Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
       Zipper::Top { .. } => ControlFlow::Break(()),
       Zipper::Down {
+        depth,
         parent,
         direction,
         focused_subtree,
@@ -160,6 +174,7 @@ impl<T: Default> Zipper<T> {
             ..
           } => {
             *self = Zipper::Down {
+              depth: *depth - 1,
               direction: parent_direction,
               parent: parent,
               focused_subtree: Some(new_focused_subtree),
@@ -214,7 +229,7 @@ enum ZipperDFSTraversalIterDirection {
   Backward,
 }
 
-struct ZipperDFSTraversal<T> {
+pub struct ZipperDFSTraversal<T> {
   next_direction: ZipperDFSTraversalDirection,
   iter_direction: ZipperDFSTraversalIterDirection,
   zipper: Zipper<T>,
@@ -566,6 +581,37 @@ mod test {
     assert_eq!(result, ControlFlow::Break(()));
 
     assert_eq!(zipper, expected_zipper);
+  }
+
+  #[test]
+  fn test_zipper_depth() {
+    use super::Tree;
+    use super::Zipper;
+    use crate::trees::boxed::parser::parse_tree;
+    use crate::types::LeafValue;
+
+    let tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
+    let mut zipper = Zipper::new(tree);
+
+    assert_eq!(zipper.get_depth(), 0);
+
+    zipper.left();
+    assert_eq!(zipper.get_depth(), 1);
+
+    zipper.left();
+    assert_eq!(zipper.get_depth(), 2);
+
+    zipper.left();
+    assert_eq!(zipper.get_depth(), 2);
+
+    zipper.up();
+    assert_eq!(zipper.get_depth(), 1);
+
+    zipper.up();
+    assert_eq!(zipper.get_depth(), 0);
+
+    zipper.up();
+    assert_eq!(zipper.get_depth(), 0);
   }
 
   #[test]
