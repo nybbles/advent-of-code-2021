@@ -115,43 +115,14 @@ fn test_tree_iter_with_mutable_borrows() {
   let root = tree_iter.next().unwrap();
   let subtree = tree_iter.next().unwrap();
 
-  println!("Step 0");
-  println!("{:?}", root.borrow());
-  println!("{:?}", subtree.borrow());
-
   {
     let borrowed_root = root.borrow();
     let mut borrowed_subtree = subtree.borrow_mut();
-
-    println!("Step 1");
-    println!("{:?}", borrowed_root);
-    println!("{:?}", borrowed_subtree);
-
-    if let Tree::NonLeaf {
-      ref left,
-      ref right,
-    } = &*borrowed_root
-    {
-      println!("WTF");
-      println!("{:?}", right.borrow());
-      // println!("{:?}", left.borrow());
-      println!("FTW");
-    } else {
-      assert!(false);
-    }
 
     if let Tree::NonLeaf { ref mut left, .. } = &mut *borrowed_subtree {
       *left = SubtreeRef::new(RefCell::new(Tree::Leaf(30)));
     } else {
       assert!(false);
     }
-
-    println!("Step 2");
-    println!("{:?}", borrowed_root);
-    println!("{:?}", borrowed_subtree);
   }
-
-  println!("Step 3");
-  println!("{:?}", root.borrow());
-  println!("{:?}", subtree.borrow());
 }
