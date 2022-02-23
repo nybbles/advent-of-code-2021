@@ -10,7 +10,7 @@ use std::ops::ControlFlow;
 // the subtree it is focusing on.
 
 #[derive(Debug, PartialEq, Copy, Clone)]
-enum ZipperDirection {
+pub enum ZipperDirection {
   Left,
   Right,
 }
@@ -385,7 +385,7 @@ fn test_zipper_dfs_traversal_backward() {
   use crate::types::LeafValue;
 
   let tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
-  let mut zipper = Zipper::new(tree);
+  let zipper = Zipper::new(tree);
   let mut zipper_dfs_traversal = ZipperDFSTraversal::new(zipper);
 
   let other_tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
@@ -484,7 +484,7 @@ fn test_zipper_dfs_traversal() {
   use crate::types::LeafValue;
 
   let tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
-  let mut zipper = Zipper::new(tree);
+  let zipper = Zipper::new(tree);
   let mut zipper_dfs_traversal = ZipperDFSTraversal::new(zipper);
 
   let other_tree = parse_tree::<Tree<LeafValue>>("[[1,9],[8,5]]").unwrap();
