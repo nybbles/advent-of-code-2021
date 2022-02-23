@@ -66,6 +66,22 @@ impl<T: Default> Zipper<T> {
     }
   }
 
+  pub fn focused_subtree_mut(&mut self) -> &mut Tree<T> {
+    let treeopt = match self {
+      Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
+      Zipper::Top { ref mut tree } => tree,
+      Zipper::Down {
+        ref mut focused_subtree,
+        ..
+      } => focused_subtree,
+    };
+
+    match treeopt {
+      Some(ref mut tree) => tree,
+      None => panic!("Logic error"),
+    }
+  }
+
   pub fn down(&mut self, direction: ZipperDirection) -> ControlFlow<()> {
     match self {
       Zipper::Tombstone | Zipper::Emptied => panic!("Logic error"),
@@ -217,22 +233,24 @@ impl<T: Default> Zipper<T> {
   }
 }
 
+#[derive(Debug)]
 enum ZipperDFSTraversalDirection {
   Up,
   Left,
   Right,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum ZipperDFSTraversalIterDirection {
   Forward,
   Backward,
 }
 
+#[derive(Debug)]
 pub struct ZipperDFSTraversal<T> {
   next_direction: ZipperDFSTraversalDirection,
   iter_direction: ZipperDFSTraversalIterDirection,
-  zipper: Zipper<T>,
+  pub zipper: Zipper<T>,
 }
 
 impl<T: Default> ZipperDFSTraversal<T> {
@@ -246,10 +264,17 @@ impl<T: Default> ZipperDFSTraversal<T> {
 
   pub fn next(&mut self) -> ControlFlow<()> {
     if self.iter_direction != ZipperDFSTraversalIterDirection::Forward {
-      self.next_direction = match self.next_direction {
-        ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Up,
-        ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Right,
-        ZipperDFSTraversalDirection::Up => ZipperDFSTraversalDirection::Left,
+      self.next_direction = match self.zipper {
+        Zipper::Top { .. } => match self.next_direction {
+          ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Left,
+          ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Up,
+          ZipperDFSTraversalDirection::Up => ZipperDFSTraversalDirection::Right,
+        },
+        _ => match self.next_direction {
+          ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Up,
+          ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Right,
+          ZipperDFSTraversalDirection::Up => ZipperDFSTraversalDirection::Left,
+        },
       };
       self.iter_direction = ZipperDFSTraversalIterDirection::Forward;
     }
@@ -292,14 +317,19 @@ impl<T: Default> ZipperDFSTraversal<T> {
     }
   }
 
-  // What happens when next and prev are called on the same DFS traversal? Does
-  // next_direction make sense?
   pub fn prev(&mut self) -> ControlFlow<()> {
     if self.iter_direction != ZipperDFSTraversalIterDirection::Backward {
-      self.next_direction = match self.next_direction {
-        ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Up,
-        ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Left,
-        ZipperDFSTraversalDirection::Up => ZipperDFSTraversalDirection::Right,
+      self.next_direction = match self.zipper {
+        Zipper::Top { .. } => match self.next_direction {
+          ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Right,
+          ZipperDFSTraversalDirection::Up => ZipperDFSTraversalDirection::Left,
+          ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Up,
+        },
+        _ => match self.next_direction {
+          ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Up,
+          ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Left,
+          ZipperDFSTraversalDirection::Up => ZipperDFSTraversalDirection::Right,
+        },
       };
       self.iter_direction = ZipperDFSTraversalIterDirection::Backward;
     }

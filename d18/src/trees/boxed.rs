@@ -56,3 +56,12 @@ impl<T: PartialEq> PartialEq for Tree<T> {
     }
   }
 }
+
+impl<T> Tree<T> {
+  pub fn is_leaf(&self) -> bool {
+    match self {
+      Tree::Leaf(_) => true,
+      _ => false,
+    }
+  }
+}
