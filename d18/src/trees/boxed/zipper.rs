@@ -267,8 +267,8 @@ impl<T: Default> ZipperDFSTraversal<T> {
       self.next_direction = match self.zipper {
         Zipper::Top { .. } => match self.next_direction {
           ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Left,
-          ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Up,
-          ZipperDFSTraversalDirection::Up => ZipperDFSTraversalDirection::Right,
+          ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Right,
+          ZipperDFSTraversalDirection::Up => panic!("Logic error"),
         },
         _ => match self.next_direction {
           ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Up,
@@ -322,8 +322,8 @@ impl<T: Default> ZipperDFSTraversal<T> {
       self.next_direction = match self.zipper {
         Zipper::Top { .. } => match self.next_direction {
           ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Right,
-          ZipperDFSTraversalDirection::Up => ZipperDFSTraversalDirection::Left,
-          ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Up,
+          ZipperDFSTraversalDirection::Right => ZipperDFSTraversalDirection::Left,
+          ZipperDFSTraversalDirection::Up => panic!("Logic error"),
         },
         _ => match self.next_direction {
           ZipperDFSTraversalDirection::Left => ZipperDFSTraversalDirection::Up,
@@ -467,9 +467,13 @@ fn test_zipper_dfs_traversal_backward() {
   other_zipper.up();
   assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
   zipper_dfs_traversal.next();
+  // extra next() needed to trigger ControlFlow::Break() at the top of the tree
+  zipper_dfs_traversal.next();
   zipper_dfs_traversal.prev();
   assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
 
+  zipper_dfs_traversal.next();
+  // extra next() needed to trigger ControlFlow::Break() at the top of the tree
   zipper_dfs_traversal.next();
   other_zipper.up();
   assert_eq!(zipper_dfs_traversal.zipper, other_zipper);
