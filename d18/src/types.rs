@@ -1,6 +1,4 @@
-use std::fmt;
-use trees::Tree;
+use crate::trees::boxed::Tree;
 
 pub type LeafValue = u32;
-pub type NodeValue = Option<LeafValue>;
-pub type SnailfishNumber = Tree<NodeValue>;
+pub type SnailfishNumber = Tree<LeafValue>;
