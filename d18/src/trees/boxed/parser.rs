@@ -7,7 +7,9 @@ use crate::types::LeafValue;
 fn test_parse_simple_input() {
   let testcases: Vec<(&str, Tree<LeafValue>)> = vec![
     ("1", Tree::Leaf(1)),
+    ("11", Tree::Leaf(11)),
     ("[1,2]", Tree::non_leaf(Tree::Leaf(1), Tree::Leaf(2))),
+    ("[11,22]", Tree::non_leaf(Tree::Leaf(11), Tree::Leaf(22))),
     (
       "[[1,2],3]",
       Tree::non_leaf(Tree::non_leaf(Tree::Leaf(1), Tree::Leaf(2)), Tree::Leaf(3)),

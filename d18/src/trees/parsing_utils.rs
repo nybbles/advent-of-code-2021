@@ -3,7 +3,7 @@ use crate::types::LeafValue;
 
 use nom::{
   branch::alt,
-  character::complete::{char, one_of},
+  character::complete::{char, digit1},
   sequence::{delimited, separated_pair},
   IResult,
 };
@@ -21,8 +21,8 @@ pub fn subtree_separator(input: &str) -> IResult<&str, char> {
 }
 
 pub fn leaf<TB: TreeBuilder<LeafValue>>(input: &str) -> IResult<&str, TB> {
-  one_of("0123456789")(input).map(|(remainder, matched)| {
-    let number = matched.to_digit(10).unwrap();
+  digit1(input).map(|(remainder, matched)| {
+    let number = matched.parse().unwrap();
     (remainder, TB::leaf(number))
   })
 }

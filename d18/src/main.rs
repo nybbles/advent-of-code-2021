@@ -155,6 +155,71 @@ fn test_snailfish_find_and_explode() {
     }
 }
 
+const SPLIT_THRESHOLD: LeafValue = 10;
+
+fn snailfish_find_and_split(input: &mut SnailfishNumber) -> bool {
+    let mut zipper_dfs_traversal = ZipperDFSTraversal::new(Zipper::new(mem::take(input)));
+
+    loop {
+        match zipper_dfs_traversal.next() {
+            ControlFlow::Break(()) => {
+                *input = zipper_dfs_traversal.zipper.to_tree();
+                return false;
+            }
+            ControlFlow::Continue(()) => (),
+        }
+
+        if !zipper_dfs_traversal.zipper.focused_subtree().is_leaf() {
+            continue;
+        }
+
+        let leaf_value = match zipper_dfs_traversal.zipper.focused_subtree() {
+            Tree::Leaf(value) => value,
+            _ => panic!("Logic error"),
+        };
+
+        if *leaf_value >= SPLIT_THRESHOLD {
+            break;
+        } else {
+            continue;
+        }
+    }
+
+    snailfish_split(&mut zipper_dfs_traversal.zipper);
+
+    *input = zipper_dfs_traversal.zipper.to_tree();
+    true
+}
+
+fn snailfish_split(input: &mut Zipper<LeafValue>) {
+    let leaf_value = match input.focused_subtree() {
+        Tree::Leaf(value) => *value,
+        _ => panic!("Logic error"),
+    };
+
+    input.attach(Tree::NonLeaf {
+        left: Box::new(Tree::Leaf(
+            (leaf_value as f32 / 2 as f32).floor() as LeafValue
+        )),
+        right: Box::new(Tree::Leaf(
+            (leaf_value as f32 / 2 as f32).ceil() as LeafValue
+        )),
+    });
+}
+
+#[test]
+fn test_snailfish_find_and_split() {
+    let testcases = vec![("[10,1]", "[[5,5],1]"), ("[5,[11,2]]", "[5,[[5,6],2]]")];
+
+    for (input_str, expected_output_str) in testcases.iter() {
+        let mut input = parse_tree::<SnailfishNumber>(input_str).unwrap();
+        let expected_output = parse_tree::<SnailfishNumber>(expected_output_str).unwrap();
+
+        assert!(snailfish_find_and_split(&mut input));
+        assert_eq!(input, expected_output);
+    }
+}
+
 // Need to modify the nested pair
 // Need to modify first regular number on left and on right of the nested pair
 
