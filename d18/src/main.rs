@@ -36,20 +36,6 @@ fn test_snailfish_add() {
     assert!(result == expected)
 }
 
-enum ReduceAction {
-    Explode,
-    Split,
-}
-
-/*
-fn snailfish_find_next_reduce_action(input: SnailfishNumber) -> Option<ReduceAction> {
-    if input.has_no_child() {
-        return None;
-    }
-    Some(ReduceAction::Explode)
-}
-*/
-
 const EXPLODE_DEPTH: usize = 4;
 
 fn snailfish_find_and_explode(input: &mut SnailfishNumber) -> bool {
@@ -220,27 +206,155 @@ fn test_snailfish_find_and_split() {
     }
 }
 
-// Need to modify the nested pair
-// Need to modify first regular number on left and on right of the nested pair
-
-// fn snailfish_split()
-// Need to modify the regular number and replace with a pair
-
-// fn snailfish_reduce(number: SnailfishNumber) -> SnailfishNumber {}
-
-/*
-#[test]
-fn test_snailfish_add_and_reduce_tc01() {
-    let input = "[1,1]
-[2,2]
-[3,3]
-[4,4]";
-    match parse_input(input) {
-        Ok(_numbers) => assert!(true),
-        Err(_msg) => assert!(false),
+fn snailfish_reduce(number: &mut SnailfishNumber) {
+    loop {
+        if !snailfish_find_and_explode(number) && !snailfish_find_and_split(number) {
+            break;
+        }
     }
 }
-*/
+
+fn snailfish_add_and_reduce(left: SnailfishNumber, right: SnailfishNumber) -> SnailfishNumber {
+    let mut reduce = snailfish_add(left, right);
+    snailfish_reduce(&mut reduce);
+    reduce
+}
+
+#[test]
+fn test_snailfish_add_and_reduce() {
+    let testcases = vec![(
+        ("[[[[4,3],4],4],[7,[[8,4],9]]]", "[1,1]"),
+        "[[[[0,7],4],[[7,8],[6,0]]],[8,1]]",
+    )];
+
+    for ((left_input_str, right_input_str), expected_output_str) in testcases.iter() {
+        let left = parse_tree::<SnailfishNumber>(left_input_str).unwrap();
+        let right = parse_tree::<SnailfishNumber>(right_input_str).unwrap();
+        let expected_output = parse_tree::<SnailfishNumber>(expected_output_str).unwrap();
+
+        let result = snailfish_add_and_reduce(left, right);
+        assert_eq!(result, expected_output);
+    }
+}
+
+fn snailfish_add_and_reduce_all(mut numbers: Vec<SnailfishNumber>) -> SnailfishNumber {
+    assert!(!numbers.is_empty());
+    numbers.reverse();
+
+    let mut result = numbers.pop().unwrap();
+
+    while let Some(right) = numbers.pop() {
+        result = snailfish_add_and_reduce(result, right);
+    }
+
+    result
+}
+
+#[test]
+fn test_snailfish_add_and_reduce_all() {
+    let testcases = vec![
+        (
+            vec!["[1,1]", "[2,2]", "[3,3]", "[4,4]"],
+            "[[[[1,1],[2,2]],[3,3]],[4,4]]",
+        ),
+        (
+            vec!["[1,1]", "[2,2]", "[3,3]", "[4,4]", "[5,5]"],
+            "[[[[3,0],[5,3]],[4,4]],[5,5]]",
+        ),
+        (
+            vec!["[1,1]", "[2,2]", "[3,3]", "[4,4]", "[5,5]", "[6,6]"],
+            "[[[[5,0],[7,4]],[5,5]],[6,6]]",
+        ),
+        (
+            vec![
+                "[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]",
+                "[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]",
+                "[[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]]",
+                "[[[[2,4],7],[6,[0,5]]],[[[6,8],[2,8]],[[2,1],[4,5]]]]",
+                "[7,[5,[[3,8],[1,4]]]]",
+                "[[2,[2,2]],[8,[8,1]]]",
+                "[2,9]",
+                "[1,[[[9,3],9],[[9,0],[0,7]]]]",
+                "[[[5,[7,4]],7],1]",
+                "[[[[4,2],2],6],[8,7]]",
+            ],
+            "[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]",
+        ),
+    ];
+
+    for (numbers_str, expected_output_str) in testcases.iter() {
+        let numbers = numbers_str
+            .iter()
+            .map(|number_str| parse_tree::<SnailfishNumber>(number_str).unwrap())
+            .collect();
+        let expected_output = parse_tree::<SnailfishNumber>(expected_output_str).unwrap();
+
+        let result = snailfish_add_and_reduce_all(numbers);
+        assert_eq!(result, expected_output);
+    }
+}
+
+fn snailfish_magnitude(input: &SnailfishNumber) -> LeafValue {
+    match input {
+        Tree::Leaf(value) => *value,
+        Tree::NonLeaf { left, right } => {
+            let left_result = snailfish_magnitude(left);
+            let right_result = snailfish_magnitude(right);
+            3 * left_result + 2 * right_result
+        }
+    }
+}
+
+#[test]
+fn test_snailfish_magnitude() {
+    let testcases = vec![
+        ("[[1,2],[[3,4],5]]", 143),
+        ("[[[[0,7],4],[[7,8],[6,0]]],[8,1]]", 1384),
+        ("[[[[1,1],[2,2]],[3,3]],[4,4]]", 445),
+        ("[[[[3,0],[5,3]],[4,4]],[5,5]]", 791),
+        ("[[[[5,0],[7,4]],[5,5]],[6,6]]", 1137),
+        (
+            "[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]",
+            3488,
+        ),
+    ];
+
+    for (input_str, expected) in testcases.iter() {
+        let input = parse_tree::<SnailfishNumber>(input_str).unwrap();
+        let output = snailfish_magnitude(&input);
+        assert_eq!(output, *expected);
+    }
+}
+
+#[test]
+fn test_final_testcase() {
+    let numbers = vec![
+        "[[[0,[5,8]],[[1,7],[9,6]]],[[4,[1,2]],[[1,4],2]]]",
+        "[[[5,[2,8]],4],[5,[[9,9],0]]]",
+        "[6,[[[6,2],[5,6]],[[7,6],[4,7]]]]",
+        "[[[6,[0,7]],[0,9]],[4,[9,[9,0]]]]",
+        "[[[7,[6,4]],[3,[1,3]]],[[[5,5],1],9]]",
+        "[[6,[[7,3],[3,2]]],[[[3,8],[5,7]],4]]",
+        "[[[[5,4],[7,7]],8],[[8,3],8]]",
+        "[[9,3],[[9,9],[6,[4,9]]]]",
+        "[[2,[[7,7],7]],[[5,8],[[9,3],[0,2]]]]",
+        "[[[[5,2],5],[8,[3,7]]],[[5,[7,5]],[4,4]]]",
+    ]
+    .iter()
+    .map(|number_str| parse_tree::<SnailfishNumber>(number_str).unwrap())
+    .collect();
+
+    let expected_final_sum = parse_tree::<SnailfishNumber>(
+        "[[[[6,6],[7,6]],[[7,7],[7,0]]],[[[7,7],[7,7]],[[7,8],[9,9]]]]",
+    )
+    .unwrap();
+
+    let result = snailfish_add_and_reduce_all(numbers);
+    assert_eq!(result, expected_final_sum);
+
+    let expected_magnitude = 4140;
+    assert_eq!(snailfish_magnitude(&result), expected_magnitude);
+}
 
 fn main() {
     println!("Hello, world!");
