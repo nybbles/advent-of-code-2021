@@ -57,6 +57,18 @@ impl<T: PartialEq> PartialEq for Tree<T> {
   }
 }
 
+impl<T: Clone> Clone for Tree<T> {
+  fn clone(&self) -> Tree<T> {
+    match self {
+      Tree::Leaf(x) => Tree::Leaf(x.clone()),
+      Tree::NonLeaf { left, right } => Tree::NonLeaf {
+        left: left.clone(),
+        right: right.clone(),
+      },
+    }
+  }
+}
+
 impl<T> Tree<T> {
   pub fn is_leaf(&self) -> bool {
     match self {
