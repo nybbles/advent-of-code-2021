@@ -5,11 +5,10 @@ use crate::trees::boxed::parser::parse_tree;
 use crate::trees::boxed::zipper::{Zipper, ZipperDFSTraversal};
 use crate::trees::boxed::Tree;
 use crate::types::*;
-use std::mem;
-
-use std::ops::ControlFlow;
-
+use itertools::Itertools;
 use std::io::{self, BufRead};
+use std::mem;
+use std::ops::ControlFlow;
 
 fn snailfish_add(left: SnailfishNumber, right: SnailfishNumber) -> SnailfishNumber {
     SnailfishNumber::NonLeaf {
@@ -347,6 +346,50 @@ fn test_final_testcase() {
     assert_eq!(snailfish_magnitude(&result), expected_magnitude);
 }
 
+fn snailfish_largest_magnitude_add(numbers: Vec<SnailfishNumber>) -> u32 {
+    let all_pairs = numbers.iter().permutations(2);
+    let mut largest_magnitude = 0;
+
+    for mut pair in all_pairs {
+        let right = pair.pop().unwrap().clone();
+        let left = pair.pop().unwrap().clone();
+
+        let magnitude = snailfish_magnitude(&snailfish_add_and_reduce(left, right));
+
+        if magnitude > largest_magnitude {
+            largest_magnitude = magnitude;
+        }
+    }
+
+    largest_magnitude
+}
+
+#[test]
+fn test_snailfish_largest_magnitude_add() {
+    let numbers = vec![
+        "[[[0,[5,8]],[[1,7],[9,6]]],[[4,[1,2]],[[1,4],2]]]",
+        "[[[5,[2,8]],4],[5,[[9,9],0]]]",
+        "[6,[[[6,2],[5,6]],[[7,6],[4,7]]]]",
+        "[[[6,[0,7]],[0,9]],[4,[9,[9,0]]]]",
+        "[[[7,[6,4]],[3,[1,3]]],[[[5,5],1],9]]",
+        "[[6,[[7,3],[3,2]]],[[[3,8],[5,7]],4]]",
+        "[[[[5,4],[7,7]],8],[[8,3],8]]",
+        "[[9,3],[[9,9],[6,[4,9]]]]",
+        "[[2,[[7,7],7]],[[5,8],[[9,3],[0,2]]]]",
+        "[[[[5,2],5],[8,[3,7]]],[[5,[7,5]],[4,4]]]",
+    ]
+    .iter()
+    .map(|number_str| parse_tree::<SnailfishNumber>(number_str).unwrap())
+    .collect();
+
+    let expected_largest_magnitude = 3993;
+
+    assert_eq!(
+        snailfish_largest_magnitude_add(numbers),
+        expected_largest_magnitude
+    );
+}
+
 fn main() -> io::Result<()> {
     let stdin = io::stdin();
     let mut lines = stdin.lock().lines();
@@ -365,8 +408,9 @@ fn main() -> io::Result<()> {
         println!("Warning: No snailfish numbers supplied");
         println!("0");
     } else {
-        let result = snailfish_add_and_reduce_all(numbers);
-        println!("{}", snailfish_magnitude(&result));
+        // let result = snailfish_magnitude(&snailfish_add_and_reduce_all(numbers));
+        let result = snailfish_largest_magnitude_add(numbers);
+        println!("{}", result);
     }
 
     Ok(())

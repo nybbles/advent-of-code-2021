@@ -6,4 +6,5 @@ edition = "2021"
 [features]
 
 [dependencies]
+itertools = "0.10.3"
 nom = "7.1.0"
